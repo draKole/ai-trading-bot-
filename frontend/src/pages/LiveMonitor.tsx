@@ -1,0 +1,11 @@
+export default function LiveMonitor() {
+  return (
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-4">Live Monitor</h2>
+      <div className="bg-slate-900 border border-slate-800 rounded-lg p-8 text-center text-slate-500">
+        <p className="text-lg mb-2">Placeholder</p>
+        <p className="text-sm">This page will be implemented in a future phase.</p>
+      </div>
+    </div>
+  )
+}

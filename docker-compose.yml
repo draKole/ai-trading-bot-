@@ -1,0 +1,87 @@
+version: "3.9"
+
+services:
+  # ─── PostgreSQL + TimescaleDB ──────────────────────────────
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: drake-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-drake_trading}
+      POSTGRES_USER: ${POSTGRES_USER:-drake}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-drake_dev_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-drake} -d ${POSTGRES_DB:-drake_trading}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── Redis ─────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: drake-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── Backend API ───────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    container_name: drake-backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - TRADING_MODE=${TRADING_MODE:-PAPER}
+      - LIVE_ALLOWED=${LIVE_ALLOWED:-false}
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app
+      - ./config:/app/config:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Frontend Dev Server ───────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/Dockerfile.frontend
+    container_name: drake-frontend
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:${API_PORT:-8000}
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
