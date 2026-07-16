@@ -1,57 +1,48 @@
-"""Market Data Service — ingest, normalize, and store OHLCV data.
+"""Market Data Service — ingest, normalize, store, and retrieve OHLCV data.
 
 Architecture:
-    Multiple data sources (yfinance, Polygon, IBKR, CSV) → normalizer → TimescaleDB.
-    All downstream engines consume normalized bars — they never know the source.
+    Provider (CSV, yfinance, Polygon, IBKR) → OHLCVBar (canonical)
+    → Validator → BarAggregator → TimescaleDB (hypertable)
+
+Key components:
+    - DataProvider (ABC): abstract interface for data sources
+    - OHLCVBar: canonical dataclass all providers normalize into
+    - CSVProvider: import from CSV files
+    - YFinanceProvider: Yahoo Finance historical data
+    - BarAggregator: build higher-TF bars from lower-TF
+    - BarValidator: deduplicate, detect gaps, validate OHLCV
+    - MarketDataService: orchestrate ingestion, storage, retrieval
 """
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from datetime import datetime
+from app.services.market_data.provider import (
+    DataProvider,
+    OHLCVBar,
+    ProviderRegistry,
+    VALID_TIMEFRAMES,
+    TIMEFRAME_MINUTES,
+    TIMEFRAME_REQUIRES,
+)
+from app.services.market_data.csv_provider import CSVProvider
+from app.services.market_data.yfinance_provider import YFinanceProvider
+from app.services.market_data.aggregator import BarAggregator
+from app.services.market_data.validator import BarValidator, ValidationResult
+from app.services.market_data.service import MarketDataService
 
+# Register default providers
+ProviderRegistry.register(CSVProvider())
+ProviderRegistry.register(YFinanceProvider())
 
-@dataclass
-class OHLCVBar:
-    """Normalized OHLCV bar — the universal data type."""
-    instrument: str
-    timeframe: str          # "1m", "3m", "5m", "15m", "1h", "4h", "1d"
-    timestamp: datetime
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: int
-    provider: str           # "yfinance", "polygon", "ibkr", "csv"
-
-
-class DataProvider(ABC):
-    """Abstract interface for market data providers."""
-
-    @abstractmethod
-    async def fetch_bars(
-        self, instrument: str, timeframe: str,
-        start: datetime, end: datetime,
-    ) -> list[OHLCVBar]:
-        """Fetch historical OHLCV bars."""
-        ...
-
-    @abstractmethod
-    async def stream_bars(
-        self, instrument: str, timeframe: str,
-    ) -> None:
-        """Subscribe to real-time bar stream."""
-        ...
-
-    @abstractmethod
-    async def is_connected(self) -> bool:
-        """Check provider connection status."""
-        ...
-
-
-class BarAggregator:
-    """Builds higher-timeframe bars from lower-timeframe bars.
-
-    Example: 1m bars → 5m, 15m, 1h, etc.
-    Not yet implemented — interface defined for Phase 1.
-    """
-    pass
+__all__ = [
+    "DataProvider",
+    "OHLCVBar",
+    "ProviderRegistry",
+    "VALID_TIMEFRAMES",
+    "TIMEFRAME_MINUTES",
+    "TIMEFRAME_REQUIRES",
+    "CSVProvider",
+    "YFinanceProvider",
+    "BarAggregator",
+    "BarValidator",
+    "ValidationResult",
+    "MarketDataService",
+]
