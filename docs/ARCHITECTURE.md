@@ -16,7 +16,7 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 |--------|-------|--------|
 | Market Data | 1A | ✅ Complete |
 | Market Structure | 1B | ✅ Complete |
-| Liquidity Engine | 2 | Interface defined |
+| Liquidity Engine | 2A | ✅ Complete |
 | FVG Engine | 2 | Interface defined |
 | Order Block Engine | 2 | Interface defined |
 | SMT Engine | 2 | Interface defined |
@@ -53,7 +53,16 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 - TimescaleDB hypertable for OHLCV storage
 - 38 tests, 1 DB-dependent skip
 
-### Phase 1B — Market Structure Engine (Current)
+### Phase 2A — Liquidity Engine (Current)
+- Session engine with timezone-aware session detection (Asia/London/NY AM/NY PM)
+- 18 liquidity level types: PDH/PDL, PWH/PWL, PMH/PML, session highs/lows, equal highs/lows, swing liquidity, internal liquidity
+- 6 event types: approached, touched, swept, rejected, broken, invalidated
+- All definitions mathematical and deterministic
+- Config snapshot serialized with every level/event for auditability
+- 22 tests with handcrafted OHLCV sequences
+- Full documentation in `docs/LIQUIDITY_ENGINE.md`
+
+### Phase 1B — Market Structure Engine
 - Swing point detection with configurable lookback/confirmation/distance
 - HH/HL/LH/LL classification
 - BOS (Break of Structure), CHoCH (Change of Character), MSS (Market Structure Shift)

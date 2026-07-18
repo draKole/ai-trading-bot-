@@ -10,7 +10,8 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | instruments | Futures contract specs | No | ✅ Phase 1A |
 | bars | OHLCV bars (all timeframes) | **Yes** | ✅ Phase 1A |
 | market_structure_events | Swings, BOS, CHoCH, MSS | No | ✅ Phase 1B |
-| liquidity_levels | Session/PDH/PDL levels | No |
+| liquidity_levels | Active liquidity levels + config | No | ✅ Phase 2A |
+| liquidity_events | Sweeps, breaks, rejections | No | ✅ Phase 2A |
 | fvgs | Fair Value Gaps + fill status | No |
 | order_blocks | Active/historical OBs | No |
 | smt_events | Divergence detections | No |
