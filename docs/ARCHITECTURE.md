@@ -14,8 +14,8 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 
 | Module | Phase | Status |
 |--------|-------|--------|
-| Market Data | 1 | Interface defined |
-| Market Structure | 2 | Interface defined |
+| Market Data | 1A | ✅ Complete |
+| Market Structure | 1B | ✅ Complete |
 | Liquidity Engine | 2 | Interface defined |
 | FVG Engine | 2 | Interface defined |
 | Order Block Engine | 2 | Interface defined |
@@ -38,11 +38,29 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 ## Technology Stack
 
 - **Backend:** Python 3.12, FastAPI, SQLAlchemy 2, Alembic
-- **Database:** PostgreSQL 16 + TimescaleDB (hypertables for OHLCV)
+- **Database:** PostgreSQL 16 + TimescaleDB (hypertables for OHLCV, regular tables for structure events)
 - **Cache:** Redis (kill switch, pub/sub, session state)
 - **Frontend:** React 18, TypeScript, Vite, Tailwind CSS
 - **Data:** Polars (primary), Pandas (fallback), yfinance (initial provider)
 - **Charts:** TradingView Lightweight Charts
+
+## Recent Phases
+
+### Phase 1A — Market Data Foundation
+- Multi-provider data ingestion (CSV, yfinance)
+- Polars-based bar aggregation across 7 timeframes (1m→3m→5m→15m→1h→4h→1d)
+- Validation engine (duplicates, gaps, overlap detection)
+- TimescaleDB hypertable for OHLCV storage
+- 38 tests, 1 DB-dependent skip
+
+### Phase 1B — Market Structure Engine (Current)
+- Swing point detection with configurable lookback/confirmation/distance
+- HH/HL/LH/LL classification
+- BOS (Break of Structure), CHoCH (Change of Character), MSS (Market Structure Shift)
+- All definitions are mathematical and deterministic
+- Config snapshot serialized with every event for auditability
+- 20 tests with handcrafted OHLCV sequences
+- Full documentation in `docs/MARKET_STRUCTURE.md`
 
 ## Key Design Decisions
 

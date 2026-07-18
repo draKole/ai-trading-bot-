@@ -7,6 +7,7 @@ from app.api import (
     auth,
     instruments,
     market_data,
+    market_structure,
     signals,
     trades,
     backtesting,
@@ -22,6 +23,7 @@ api_router.include_router(health.router, tags=["Health"])
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(instruments.router, prefix="/instruments", tags=["Instruments"])
 api_router.include_router(market_data.router, prefix="/market-data", tags=["Market Data"])
+api_router.include_router(market_structure.router, prefix="/market-structure", tags=["Market Structure"])
 api_router.include_router(signals.router, prefix="/signals", tags=["Signals"])
 api_router.include_router(trades.router, prefix="/trades", tags=["Trades"])
 api_router.include_router(backtesting.router, prefix="/backtesting", tags=["Backtesting"])

@@ -5,11 +5,11 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 
 ## Major Tables (planned)
 
-| Table | Purpose | Hypertable? |
-|-------|---------|-------------|
-| instruments | Futures contract specs | No |
-| bars | OHLCV bars (all timeframes) | **Yes** |
-| market_structure_events | Swings, BOS, CHoCH, MSS | No |
+| Table | Purpose | Hypertable? | Status |
+|-------|---------|-------------|--------|
+| instruments | Futures contract specs | No | ✅ Phase 1A |
+| bars | OHLCV bars (all timeframes) | **Yes** | ✅ Phase 1A |
+| market_structure_events | Swings, BOS, CHoCH, MSS | No | ✅ Phase 1B |
 | liquidity_levels | Session/PDH/PDL levels | No |
 | fvgs | Fair Value Gaps + fill status | No |
 | order_blocks | Active/historical OBs | No |
