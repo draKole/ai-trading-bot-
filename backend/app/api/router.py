@@ -9,6 +9,7 @@ from app.api import (
     market_data,
     market_structure,
     liquidity,
+    fvg,
     signals,
     trades,
     backtesting,
@@ -26,6 +27,7 @@ api_router.include_router(instruments.router, prefix="/instruments", tags=["Inst
 api_router.include_router(market_data.router, prefix="/market-data", tags=["Market Data"])
 api_router.include_router(market_structure.router, prefix="/market-structure", tags=["Market Structure"])
 api_router.include_router(liquidity.router, prefix="/liquidity", tags=["Liquidity"])
+api_router.include_router(fvg.router, prefix="/fvg", tags=["FVG"])
 api_router.include_router(signals.router, prefix="/signals", tags=["Signals"])
 api_router.include_router(trades.router, prefix="/trades", tags=["Trades"])
 api_router.include_router(backtesting.router, prefix="/backtesting", tags=["Backtesting"])

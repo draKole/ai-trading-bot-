@@ -17,7 +17,7 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 | Market Data | 1A | ✅ Complete |
 | Market Structure | 1B | ✅ Complete |
 | Liquidity Engine | 2A | ✅ Complete |
-| FVG Engine | 2 | Interface defined |
+| FVG Engine | 2B | ✅ Complete |
 | Order Block Engine | 2 | Interface defined |
 | SMT Engine | 2 | Interface defined |
 | Session Engine | 2 | Interface defined |

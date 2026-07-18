@@ -12,7 +12,8 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | market_structure_events | Swings, BOS, CHoCH, MSS | No | ✅ Phase 1B |
 | liquidity_levels | Active liquidity levels + config | No | ✅ Phase 2A |
 | liquidity_events | Sweeps, breaks, rejections | No | ✅ Phase 2A |
-| fvgs | Fair Value Gaps + fill status | No |
+| fair_value_gaps | FVGs with lifecycle tracking | No | ✅ Phase 2B |
+| fvg_lifecycle_events | State transition log | No | ✅ Phase 2B |
 | order_blocks | Active/historical OBs | No |
 | smt_events | Divergence detections | No |
 | signals | Generated trade signals | No |
