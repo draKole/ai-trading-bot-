@@ -20,10 +20,8 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 | FVG Engine | 2B | ✅ Complete |
 | Order Block Engine | 2C | ✅ Complete |
 | SMT Engine | 2D | ✅ Complete |
-| Session Engine | 2 | Interface defined |
-| Bias Engine | 2 | Interface defined |
+| Confluence Engine | 3A | ✅ Complete |
 | Strategy Engine | 3 | Interface defined |
-| Confluence Scorer | 3 | Interface defined |
 | Risk Engine | 5 | Interface defined |
 | Position Sizing | 5 | Interface defined |
 | Broker Adapter | 7 | Interface defined |

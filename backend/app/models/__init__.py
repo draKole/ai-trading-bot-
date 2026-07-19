@@ -8,6 +8,9 @@ from app.models.liquidity import LiquidityLevel, LiquidityEvent  # noqa: F401
 from app.models.fvg import FairValueGap, FVGLifecycleEvent  # noqa: F401
 from app.models.order_block import OrderBlock, OBLifecycleEvent  # noqa: F401
 from app.models.smt import SMTEvent, SMTPairConfig  # noqa: F401
+from app.models.confluence import (
+    ConfluenceSnapshot, ConfluenceRuleResult, ConfluenceRule,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -16,4 +19,5 @@ __all__ = [
     "FairValueGap", "FVGLifecycleEvent",
     "OrderBlock", "OBLifecycleEvent",
     "SMTEvent", "SMTPairConfig",
+    "ConfluenceSnapshot", "ConfluenceRuleResult", "ConfluenceRule",
 ]

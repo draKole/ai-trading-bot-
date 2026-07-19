@@ -18,7 +18,9 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | ob_lifecycle_events | State transition log | No | ✅ Phase 2C |
 | smt_events | SMT divergence detections | No | ✅ Phase 2D |
 | smt_pair_configs | Instrument pair configs | No | ✅ Phase 2D |
-| risk_decisions | Approval/rejection records | No |
+| confluence_snapshots | Unified market state | No | ✅ Phase 3A |
+| confluence_rule_results | Rule evaluation results | No | ✅ Phase 3A |
+| confluence_rules | Rule definitions | No | ✅ Phase 3A |
 | orders | Broker order tracking | No |
 | trades | Complete trade records | No |
 | account_snapshots | Periodic equity snapshots | **Yes** |
