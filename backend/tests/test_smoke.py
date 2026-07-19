@@ -77,27 +77,28 @@ def test_broker_adapter_abc():
         assert method in methods, f"BrokerAdapter missing method: {method}"
 
 
-def test_signal_dataclass():
-    """Verify Signal dataclass can be instantiated."""
-    from app.services.strategy import Signal, Direction, SetupType
+def test_strategy_dataclass():
+    """Verify MarketBias can be instantiated."""
+    from app.services.strategy import MarketBias, BiasDirection
     from datetime import datetime
 
-    signal = Signal(
-        id="test-001",
-        strategy_version="0.1.0",
-        instrument="MNQ",
-        direction=Direction.LONG,
-        setup_type=SetupType.FVG_RETRACEMENT,
-        entry_price=21000.0,
-        stop_loss=20950.0,
-        take_profit=21100.0,
-        confluence_score=7.5,
-        timeframe_context="5m",
-        bias="bullish",
-        generated_at=datetime.now(),
+    bias = MarketBias(
+        instrument="ES",
+        timeframe="5m",
+        timestamp=datetime.now(),
+        direction="bullish",
+        strength_score=85.0,
+        confidence="High",
+        trend="bullish",
+        market_regime="trending",
+        session="london",
+        bias_grade="A-",
+        supporting_evidence=[{"engine": "market_structure", "event": "BOS"}],
+        contradicting_evidence=[],
     )
-    assert signal.id == "test-001"
-    assert signal.confluence_score == 7.5
+    assert bias.direction == "bullish"
+    assert bias.strength_score == 85.0
+    assert bias.bias_grade == "A-"
 
 
 def test_risk_profile_defaults():
