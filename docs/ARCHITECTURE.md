@@ -21,7 +21,7 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 | Order Block Engine | 2C | ✅ Complete |
 | SMT Engine | 2D | ✅ Complete |
 | Confluence Engine | 3A | ✅ Complete |
-| Strategy Engine | 3 | Interface defined |
+| Strategy Engine | 3B | ✅ Complete |
 | Risk Engine | 5 | Interface defined |
 | Position Sizing | 5 | Interface defined |
 | Broker Adapter | 7 | Interface defined |

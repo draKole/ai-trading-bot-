@@ -13,6 +13,7 @@ from app.api import (
     order_blocks,
     smt,
     confluence,
+    strategy,
     signals,
     trades,
     backtesting,
@@ -34,6 +35,7 @@ api_router.include_router(fvg.router, prefix="/fvg", tags=["FVG"])
 api_router.include_router(order_blocks.router, prefix="/order-blocks", tags=["Order Blocks"])
 api_router.include_router(smt.router, prefix="/smt", tags=["SMT Divergence"])
 api_router.include_router(confluence.router, prefix="/confluence", tags=["Confluence"])
+api_router.include_router(strategy.router, prefix="/strategy", tags=["Strategy"])
 api_router.include_router(signals.router, prefix="/signals", tags=["Signals"])
 api_router.include_router(trades.router, prefix="/trades", tags=["Trades"])
 api_router.include_router(backtesting.router, prefix="/backtesting", tags=["Backtesting"])

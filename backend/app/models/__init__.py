@@ -11,6 +11,9 @@ from app.models.smt import SMTEvent, SMTPairConfig  # noqa: F401
 from app.models.confluence import (
     ConfluenceSnapshot, ConfluenceRuleResult, ConfluenceRule,
 )  # noqa: F401
+from app.models.strategy import (
+    MarketBias, TradeSetup, StrategyRule, StrategyEvaluation,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -20,4 +23,5 @@ __all__ = [
     "OrderBlock", "OBLifecycleEvent",
     "SMTEvent", "SMTPairConfig",
     "ConfluenceSnapshot", "ConfluenceRuleResult", "ConfluenceRule",
+    "MarketBias", "TradeSetup", "StrategyRule", "StrategyEvaluation",
 ]

@@ -21,7 +21,10 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | confluence_snapshots | Unified market state | No | ✅ Phase 3A |
 | confluence_rule_results | Rule evaluation results | No | ✅ Phase 3A |
 | confluence_rules | Rule definitions | No | ✅ Phase 3A |
-| orders | Broker order tracking | No |
+| market_biases | Directional bias | No | ✅ Phase 3B |
+| trade_setups | Advisory trade setups | No | ✅ Phase 3B |
+| strategy_rules | Strategy rule definitions | No | ✅ Phase 3B |
+| strategy_evaluations | Rule evaluation results | No | ✅ Phase 3B |
 | trades | Complete trade records | No |
 | account_snapshots | Periodic equity snapshots | **Yes** |
 | risk_events | Kill switch activations, etc. | No |

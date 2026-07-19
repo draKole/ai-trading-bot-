@@ -1,59 +1,29 @@
-"""Strategy Engine — compose conditions into trade setups.
+"""Strategy Engine — Market Bias + Trade Setup Generator.
 
-Modular: conditions are composable. Setup = combination of conditions.
-Each strategy version is tracked for backtesting and journaling.
+Consumes Confluence Engine output to produce standardized Market Bias
+and Trade Setup objects. Advisory only — no order execution.
+
+Components:
+    - build_market_bias: Aggregate all engine evidence into directional bias
+    - generate_trade_setup: Produce entry zone, targets, stop reference
+    - evaluate_strategy_rules: Configurable rule evaluation
+    - StrategyService: Persistence and query layer
 """
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from datetime import datetime
-from enum import Enum
+from app.services.strategy.engine import (
+    build_market_bias, generate_trade_setup, evaluate_strategy_rules,
+    MarketBias, TradeSetup, StrategyRule, StrategyConfig,
+    SetupStatus, SetupGrade, BiasDirection, ConfidenceLevel,
+    MarketRegime, score_to_grade, score_to_confidence,
+    DEFAULT_SCORING_WEIGHTS, _default_strategy_rules,
+)
+from app.services.strategy.service import StrategyService
 
-
-class Direction(str, Enum):
-    LONG = "LONG"
-    SHORT = "SHORT"
-
-
-class SetupType(str, Enum):
-    FVG_RETRACEMENT = "fvg_retracement"
-    ORDER_BLOCK = "order_block"
-    LIQUIDITY_SWEEP = "liquidity_sweep"
-    STRUCTURE_SHIFT = "structure_shift"
-
-
-@dataclass
-class Signal:
-    """A validated trade signal from the strategy engine."""
-    id: str
-    strategy_version: str
-    instrument: str
-    direction: Direction
-    setup_type: SetupType
-    entry_price: float
-    stop_loss: float
-    take_profit: float
-    confluence_score: float
-    timeframe_context: str
-    bias: str | None
-    triggering_conditions: dict = field(default_factory=dict)
-    generated_at: datetime | None = None
-    expires_at: datetime | None = None
-
-
-class SetupCondition(ABC):
-    """A single condition that can be part of a setup."""
-
-    @abstractmethod
-    def evaluate(self, context: dict) -> bool:
-        """Evaluate whether this condition is met."""
-        ...
-
-
-class StrategyEngine(ABC):
-    """Abstract interface for the strategy/setup engine."""
-
-    @abstractmethod
-    def generate_signals(self, context: dict) -> list[Signal]:
-        """Generate trade signals from the current market context."""
-        ...
+__all__ = [
+    "build_market_bias", "generate_trade_setup", "evaluate_strategy_rules",
+    "MarketBias", "TradeSetup", "StrategyRule", "StrategyConfig",
+    "SetupStatus", "SetupGrade", "BiasDirection", "ConfidenceLevel",
+    "MarketRegime", "score_to_grade", "score_to_confidence",
+    "DEFAULT_SCORING_WEIGHTS", "_default_strategy_rules",
+    "StrategyService",
+]
