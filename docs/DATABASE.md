@@ -16,7 +16,8 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | fvg_lifecycle_events | State transition log | No | ✅ Phase 2B |
 | order_blocks | BOS/CHoCH-triggered OBs | No | ✅ Phase 2C |
 | ob_lifecycle_events | State transition log | No | ✅ Phase 2C |
-| signals | Generated trade signals | No |
+| smt_events | SMT divergence detections | No | ✅ Phase 2D |
+| smt_pair_configs | Instrument pair configs | No | ✅ Phase 2D |
 | risk_decisions | Approval/rejection records | No |
 | orders | Broker order tracking | No |
 | trades | Complete trade records | No |

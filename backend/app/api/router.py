@@ -11,6 +11,7 @@ from app.api import (
     liquidity,
     fvg,
     order_blocks,
+    smt,
     signals,
     trades,
     backtesting,
@@ -30,6 +31,7 @@ api_router.include_router(market_structure.router, prefix="/market-structure", t
 api_router.include_router(liquidity.router, prefix="/liquidity", tags=["Liquidity"])
 api_router.include_router(fvg.router, prefix="/fvg", tags=["FVG"])
 api_router.include_router(order_blocks.router, prefix="/order-blocks", tags=["Order Blocks"])
+api_router.include_router(smt.router, prefix="/smt", tags=["SMT Divergence"])
 api_router.include_router(signals.router, prefix="/signals", tags=["Signals"])
 api_router.include_router(trades.router, prefix="/trades", tags=["Trades"])
 api_router.include_router(backtesting.router, prefix="/backtesting", tags=["Backtesting"])
