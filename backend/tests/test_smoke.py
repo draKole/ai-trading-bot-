@@ -117,12 +117,13 @@ def test_live_mode_gate():
 
 
 def test_confluence_config_threshold():
-    """Verify ConfluenceConfig has a min_threshold."""
+    """Verify ConfluenceConfig has key attributes."""
     from app.services.confluence import ConfluenceConfig
 
     config = ConfluenceConfig()
-    assert config.min_threshold >= 0
-    assert config.htf_alignment > 0
+    assert config.min_evidence_sources >= 0
+    assert config.fvg_weight > 0
+    assert config.smt_weight > 0
 
 
 @pytest.mark.asyncio
