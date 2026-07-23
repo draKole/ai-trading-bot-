@@ -101,14 +101,14 @@ def test_strategy_dataclass():
     assert bias.bias_grade == "A-"
 
 
-def test_risk_profile_defaults():
-    """Verify RiskProfile has sensible defaults."""
-    from app.services.risk import RiskProfile
+def test_risk_config_defaults():
+    """Verify RiskConfig has sensible defaults."""
+    from app.services.risk import RiskConfig
 
-    profile = RiskProfile(name="default")
-    assert profile.risk_per_trade_pct == 0.01
-    assert profile.min_risk_reward == 2.0
-    assert profile.max_contracts == 10
+    config = RiskConfig()
+    assert config.min_reward_risk_ratio >= 1.0
+    assert config.max_stop_distance_pct > 0
+    assert config.min_confidence == "Medium"
 
 
 def test_live_mode_gate():
