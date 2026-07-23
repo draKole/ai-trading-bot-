@@ -31,7 +31,9 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | position_recommendations | Position size recs | No | ✅ Phase 4B |
 | position_sizing_rules | Sizing rule definitions | No | ✅ Phase 4B |
 | position_sizing_evaluations | Constraint check results | No | ✅ Phase 4B |
-| risk_events | Kill switch activations, etc. | No |
+| managed_trades | Stateful trade records | No | ✅ Phase 4C |
+| trade_events | State transition log | No | ✅ Phase 4C |
+| trade_management_rules | Management rule defs | No | ✅ Phase 4C |
 | backtest_runs | Backtest configuration + results | No |
 | backtest_trades | Individual backtest trades | No |
 | paper_runs | Paper trading sessions | No |

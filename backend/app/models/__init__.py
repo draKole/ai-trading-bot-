@@ -20,6 +20,9 @@ from app.models.risk import (
 from app.models.position_sizing import (
     PositionRecommendation, PositionSizingRule, PositionSizingEvaluation,
 )  # noqa: F401
+from app.models.trade_management import (
+    ManagedTrade, TradeEvent, TradeManagementRule,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",

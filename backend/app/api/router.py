@@ -16,6 +16,7 @@ from app.api import (
     strategy,
     risk,
     position_sizing,
+    trade_management,
     signals,
     trades,
     backtesting,
@@ -39,6 +40,7 @@ api_router.include_router(confluence.router, prefix="/confluence", tags=["Conflu
 api_router.include_router(strategy.router, prefix="/strategy", tags=["Strategy"])
 api_router.include_router(risk.router, prefix="/risk", tags=["Risk"])
 api_router.include_router(position_sizing.router, prefix="/position-sizing", tags=["Position Sizing"])
+api_router.include_router(trade_management.router, prefix="/trade-management", tags=["Trade Management"])
 api_router.include_router(signals.router, prefix="/signals", tags=["Signals"])
 api_router.include_router(trades.router, prefix="/trades", tags=["Trades"])
 api_router.include_router(backtesting.router, prefix="/backtesting", tags=["Backtesting"])
