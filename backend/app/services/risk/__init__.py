@@ -1,48 +1,27 @@
-"""Risk Engine — the final gatekeeper.
+"""Risk Engine — evaluates Trade Setups against configurable risk criteria.
 
-Sits between signal generation and order placement.
-Has veto power over EVERY trade, regardless of confluence score.
-Stateless per check — reads current account state from DB/Redis.
+Consumes Trade Setup + Market Bias to produce Risk Reports with
+validation, classification, and detailed scoring.
+
+Components:
+    - compute_assessment: Numerical risk metrics (R:R, stop %, volatility)
+    - validate_setup: Configurable validation rules
+    - evaluate_risk: Full pipeline → RiskReport
+    - RiskService: Persistence and query layer
 """
 
-from dataclasses import dataclass
-from datetime import datetime
-from enum import Enum
+from app.services.risk.engine import (
+    compute_assessment, validate_setup, evaluate_risk,
+    RiskAssessment, ValidationItem, ValidationSummary,
+    RiskReport, RiskConfig, RiskClassification, ValidationResult,
+    compute_risk_score, classify_risk,
+)
+from app.services.risk.service import RiskService
 
-
-class RiskDecision(str, Enum):
-    APPROVED = "approved"
-    REJECTED = "rejected"
-
-
-@dataclass
-class RiskProfile:
-    """Configurable risk profile (default, prop-firm-specific, etc.)."""
-    name: str
-    risk_per_trade_pct: float = 0.01
-    max_daily_loss_pct: float = 0.03
-    max_trailing_drawdown_pct: float = 0.05
-    max_contracts: int = 10
-    max_trades_per_day: int = 10
-    max_trades_per_session: int = 5
-    max_consecutive_losses: int = 3
-    min_risk_reward: float = 2.0
-    stale_signal_seconds: int = 300
-    max_open_positions: int = 3
-    daily_profit_lock_pct: float | None = None
-
-
-@dataclass
-class RiskEvaluation:
-    """Result of a risk check."""
-    decision: RiskDecision
-    reason: str | None = None
-    profile_name: str = "default"
-
-
-class RiskEngine:
-    """Risk engine — validates signals against all risk rules.
-
-    Not yet implemented — interface defined for Phase 5.
-    """
-    pass
+__all__ = [
+    "compute_assessment", "validate_setup", "evaluate_risk",
+    "RiskAssessment", "ValidationItem", "ValidationSummary",
+    "RiskReport", "RiskConfig", "RiskClassification", "ValidationResult",
+    "compute_risk_score", "classify_risk",
+    "RiskService",
+]

@@ -25,7 +25,9 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | trade_setups | Advisory trade setups | No | ✅ Phase 3B |
 | strategy_rules | Strategy rule definitions | No | ✅ Phase 3B |
 | strategy_evaluations | Rule evaluation results | No | ✅ Phase 3B |
-| trades | Complete trade records | No |
+| risk_reports | Risk evaluation reports | No | ✅ Phase 4A |
+| risk_rules | Risk rule definitions | No | ✅ Phase 4A |
+| risk_evaluations | Individual risk checks | No | ✅ Phase 4A |
 | account_snapshots | Periodic equity snapshots | **Yes** |
 | risk_events | Kill switch activations, etc. | No |
 | backtest_runs | Backtest configuration + results | No |

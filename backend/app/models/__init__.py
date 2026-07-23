@@ -14,6 +14,9 @@ from app.models.confluence import (
 from app.models.strategy import (
     MarketBias, TradeSetup, StrategyRule, StrategyEvaluation,
 )  # noqa: F401
+from app.models.risk import (
+    RiskReport, RiskRule, RiskEvaluation,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -24,4 +27,5 @@ __all__ = [
     "SMTEvent", "SMTPairConfig",
     "ConfluenceSnapshot", "ConfluenceRuleResult", "ConfluenceRule",
     "MarketBias", "TradeSetup", "StrategyRule", "StrategyEvaluation",
+    "RiskReport", "RiskRule", "RiskEvaluation",
 ]

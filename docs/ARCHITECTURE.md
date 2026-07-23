@@ -22,7 +22,7 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 | SMT Engine | 2D | ✅ Complete |
 | Confluence Engine | 3A | ✅ Complete |
 | Strategy Engine | 3B | ✅ Complete |
-| Risk Engine | 5 | Interface defined |
+| Risk Engine | 4A | ✅ Complete |
 | Position Sizing | 5 | Interface defined |
 | Broker Adapter | 7 | Interface defined |
 | Order Manager | 7 | Interface defined |
