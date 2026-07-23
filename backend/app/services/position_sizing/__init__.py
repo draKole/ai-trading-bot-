@@ -1,36 +1,31 @@
-"""Position Sizing Engine — calculate contract quantity.
+"""Position Sizing Engine — determines appropriate position size.
 
-Based on instrument specs (tick size, tick value), entry price,
-stop distance, and maximum permitted risk. Never increases size
-to hit a profit target.
+Consumes Trade Setup + Risk Report + Account Config to produce
+Position Size Recommendations. Advisory only — no execution.
+
+Components:
+    - calculate_position: Full pipeline → PositionRecommendation
+    - PositionSizingService: Persistence and query layer
 """
 
-from dataclasses import dataclass
+from app.services.position_sizing.engine import (
+    calculate_position,
+    PositionRecommendation, AccountConfig,
+    SizingMethod, ConstraintStatus,
+    calc_dollar_risk, calc_max_contracts_by_risk,
+    calc_fixed_dollar_contracts, calc_fixed_pct_contracts,
+    calc_kelly_contracts, calc_fixed_contract_count,
+    validate_constraints, ConstraintResult,
+)
+from app.services.position_sizing.service import PositionSizingService
 
-
-@dataclass
-class InstrumentSpec:
-    """Specifications for a futures instrument."""
-    symbol: str
-    tick_size: float
-    tick_value: float          # Dollar value per tick per contract
-    multiplier: int
-    min_contracts: int = 1
-    max_contracts: int = 10
-
-
-@dataclass
-class PositionSize:
-    contracts: int
-    dollar_risk: float
-    stop_distance_ticks: int
-    rejected: bool = False
-    rejection_reason: str | None = None
-
-
-class PositionSizer:
-    """Calculate position size from entry, stop, and risk parameters.
-
-    Not yet implemented — interface defined for Phase 5.
-    """
-    pass
+__all__ = [
+    "calculate_position",
+    "PositionRecommendation", "AccountConfig",
+    "SizingMethod", "ConstraintStatus",
+    "calc_dollar_risk", "calc_max_contracts_by_risk",
+    "calc_fixed_dollar_contracts", "calc_fixed_pct_contracts",
+    "calc_kelly_contracts", "calc_fixed_contract_count",
+    "validate_constraints", "ConstraintResult",
+    "PositionSizingService",
+]

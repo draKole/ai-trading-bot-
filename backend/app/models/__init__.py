@@ -17,6 +17,9 @@ from app.models.strategy import (
 from app.models.risk import (
     RiskReport, RiskRule, RiskEvaluation,
 )  # noqa: F401
+from app.models.position_sizing import (
+    PositionRecommendation, PositionSizingRule, PositionSizingEvaluation,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -28,4 +31,5 @@ __all__ = [
     "ConfluenceSnapshot", "ConfluenceRuleResult", "ConfluenceRule",
     "MarketBias", "TradeSetup", "StrategyRule", "StrategyEvaluation",
     "RiskReport", "RiskRule", "RiskEvaluation",
+    "PositionRecommendation", "PositionSizingRule", "PositionSizingEvaluation",
 ]

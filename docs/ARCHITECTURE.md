@@ -23,7 +23,7 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 | Confluence Engine | 3A | ✅ Complete |
 | Strategy Engine | 3B | ✅ Complete |
 | Risk Engine | 4A | ✅ Complete |
-| Position Sizing | 5 | Interface defined |
+| Position Sizing | 4B | ✅ Complete |
 | Broker Adapter | 7 | Interface defined |
 | Order Manager | 7 | Interface defined |
 | Backtesting | 4 | Interface defined |

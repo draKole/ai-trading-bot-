@@ -15,12 +15,12 @@ from app.api import (
     confluence,
     strategy,
     risk,
+    position_sizing,
     signals,
     trades,
     backtesting,
     analytics,
     dashboard,
-    risk,
     settings as settings_router,
 )
 
@@ -38,10 +38,10 @@ api_router.include_router(smt.router, prefix="/smt", tags=["SMT Divergence"])
 api_router.include_router(confluence.router, prefix="/confluence", tags=["Confluence"])
 api_router.include_router(strategy.router, prefix="/strategy", tags=["Strategy"])
 api_router.include_router(risk.router, prefix="/risk", tags=["Risk"])
+api_router.include_router(position_sizing.router, prefix="/position-sizing", tags=["Position Sizing"])
 api_router.include_router(signals.router, prefix="/signals", tags=["Signals"])
 api_router.include_router(trades.router, prefix="/trades", tags=["Trades"])
 api_router.include_router(backtesting.router, prefix="/backtesting", tags=["Backtesting"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
-api_router.include_router(risk.router, prefix="/risk", tags=["Risk"])
 api_router.include_router(settings_router.router, prefix="/settings", tags=["Settings"])
