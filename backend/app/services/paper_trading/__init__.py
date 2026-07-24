@@ -1,13 +1,28 @@
 """Paper Trading Engine — simulated execution with the real pipeline.
 
-Uses the SAME signal and risk pipeline as live trading.
-NOT a separate strategy implementation.
+Components:
+    - PaperTradingController: session, order, position, and execution management
+    - PaperSession / PaperOrder / PaperPosition / PaperExecution dataclasses
+    - Simulated order execution with slippage and commission
+    - PaperTradingService: persistence layer
 """
 
+from app.services.paper_trading.engine import (
+    PaperTradingController, PaperTradingConfig,
+    PaperSession, PaperOrder, PaperPosition, PaperExecution,
+    execute_market_order, execute_limit_order,
+    compute_slippage, compute_commission,
+    update_position_after_fill, compute_unrealized_pnl,
+    SessionStatus, OrderType, OrderSide, OrderStatus, PositionStatus,
+)
+from app.services.paper_trading.service import PaperTradingService
 
-class PaperTradingEngine:
-    """Run the full pipeline against live data with simulated fills.
-
-    Not yet implemented — interface defined for Phase 5.
-    """
-    pass
+__all__ = [
+    "PaperTradingController", "PaperTradingConfig",
+    "PaperSession", "PaperOrder", "PaperPosition", "PaperExecution",
+    "execute_market_order", "execute_limit_order",
+    "compute_slippage", "compute_commission",
+    "update_position_after_fill", "compute_unrealized_pnl",
+    "SessionStatus", "OrderType", "OrderSide", "OrderStatus", "PositionStatus",
+    "PaperTradingService",
+]

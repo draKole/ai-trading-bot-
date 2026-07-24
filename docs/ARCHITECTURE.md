@@ -28,8 +28,8 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 | Historical Replay | 5A | ✅ Complete |
 | Backtesting | 5B | ✅ Complete |
 | Performance Analytics | 5C | ✅ Complete |
+| Paper Trading | 6A | ✅ Complete |
 | Order Manager | 7 | Interface defined |
-| Paper Trading | 5 | Interface defined |
 | Trade Journal | 5 | Interface defined |
 | Analytics | 6 | Interface defined |
 | Dashboard | 6 | Interface defined |
@@ -45,6 +45,16 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 - **Charts:** TradingView Lightweight Charts
 
 ## Recent Phases
+
+### Phase 6A — Paper Trading Engine
+- Simulated execution with the full strategy pipeline
+- Multiple concurrent accounts, market/limit/stop orders
+- Realistic fills: slippage, commission, partial fills
+- Position tracking: long/short, open/closed, P&L mark-to-market
+- Session state export/import for recovery
+- 11 API endpoints for session/order/position/execution management
+- 42 tests (1 DB-dependent skipped)
+- Full documentation in `docs/PAPER_TRADING.md`
 
 ### Phase 5C — Performance Analytics
 - Pure-function analytics consuming Phase 5B data — never touches bars

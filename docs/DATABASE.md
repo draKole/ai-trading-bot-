@@ -42,7 +42,10 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | backtest_metrics | Aggregated metrics per run | No | ✅ Phase 5B |
 | analytics_reports | Cached analytics reports | No | ✅ Phase 5C |
 | strategy_comparisons | Multi-run comparisons | No | ✅ Phase 5C |
-| paper_runs | Paper trading sessions | No |
+| paper_trading_sessions | Paper account config + state | No | ✅ Phase 6A |
+| paper_orders | Simulated orders | No | ✅ Phase 6A |
+| paper_positions | Open/closed positions | No | ✅ Phase 6A |
+| paper_executions | Order fill records | No | ✅ Phase 6A |
 | audit_logs | All system actions | No |
 | strategies | Strategy versions + config | No |
 | risk_profiles | Risk parameter sets | No |

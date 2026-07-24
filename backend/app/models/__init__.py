@@ -32,6 +32,9 @@ from app.models.backtesting import (
 from app.models.analytics import (
     AnalyticsReport, StrategyComparison,
 )  # noqa: F401
+from app.models.paper_trading import (
+    PaperTradingSession, PaperOrder, PaperPosition, PaperExecution,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -47,4 +50,5 @@ __all__ = [
     "ReplaySession", "ReplaySnapshot", "ReplayEvent",
     "BacktestRun", "BacktestTrade", "BacktestMetrics",
     "AnalyticsReport", "StrategyComparison",
+    "PaperTradingSession", "PaperOrder", "PaperPosition", "PaperExecution",
 ]
