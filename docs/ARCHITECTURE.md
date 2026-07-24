@@ -32,6 +32,7 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 | Live Broker Integration | 6B | ✅ Complete |
 | Production Monitoring | 7A | ✅ Complete |
 | Deployment & Infrastructure | 7B | ✅ Complete |
+| Security & Secrets | 7C | ✅ Complete |
 | Order Manager | 7 | Interface defined |
 | Trade Journal | 5 | Interface defined |
 | Analytics | 6 | Interface defined |
@@ -48,6 +49,17 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 - **Charts:** TradingView Lightweight Charts
 
 ## Recent Phases
+
+### Phase 7C — Security & Secrets Management
+- JWT-like authentication: access + refresh tokens, brute force detection
+- Role-based access: Administrator, Trader, ReadOnly, ServiceAccount
+- Secrets management: EnvSecretProvider, never logged or serialized
+- Encryption: at-rest XOR encryption, key rotation, fingerprint
+- Security monitor: brute force, rate limiting, IP blocking, alerts
+- 6 database tables: users, roles, sessions, API keys, events, secret metadata
+- 8 API endpoints: login, logout, refresh, register, profile, sessions, events, alerts
+- 33 tests (1 DB-dependent skipped)
+- Full documentation in `docs/SECURITY.md`
 
 ### Phase 7B — Deployment & Infrastructure
 - Multi-stage Dockerfile (builder + production, non-root user, health check)

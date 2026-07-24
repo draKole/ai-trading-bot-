@@ -41,6 +41,9 @@ from app.models.live_trading import (
 from app.models.monitoring import (
     SystemHealth, Alert, AuditLog, PerformanceMetric,
 )  # noqa: F401
+from app.models.security import (
+    User, Role, UserSession, ApiKey, SecurityEvent, SecretMetadata,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -59,4 +62,5 @@ __all__ = [
     "PaperTradingSession", "PaperOrder", "PaperPosition", "PaperExecution",
     "LiveTradingSession", "LiveOrder", "LiveExecution", "BrokerConnectionLog",
     "SystemHealth", "Alert", "AuditLog", "PerformanceMetric",
+    "User", "Role", "UserSession", "ApiKey", "SecurityEvent", "SecretMetadata",
 ]

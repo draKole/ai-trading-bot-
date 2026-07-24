@@ -54,8 +54,13 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | alerts | Monitoring alerts | No | ✅ Phase 7A |
 | audit_logs | Immutable audit trail | No | ✅ Phase 7A |
 | performance_metrics | Time-series metrics | No | ✅ Phase 7A |
+| users | User accounts + roles | No | ✅ Phase 7C |
+| roles | Role permissions | No | ✅ Phase 7C |
+| user_sessions | Active sessions | No | ✅ Phase 7C |
+| api_keys | Service account keys | No | ✅ Phase 7C |
+| security_events | Security audit trail | No | ✅ Phase 7C |
+| secret_metadata | Secret metadata (no values) | No | ✅ Phase 7C |
 | strategies | Strategy versions + config | No |
 | risk_profiles | Risk parameter sets | No |
-| users | Authentication | No |
 
 TimescaleDB hypertables are used for append-heavy time-series tables (bars, account_snapshots).
