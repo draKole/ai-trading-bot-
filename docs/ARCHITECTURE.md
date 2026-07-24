@@ -26,8 +26,8 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 | Position Sizing | 4B | ✅ Complete |
 | Trade Management | 4C | ✅ Complete |
 | Historical Replay | 5A | ✅ Complete |
+| Backtesting | 5B | ✅ Complete |
 | Order Manager | 7 | Interface defined |
-| Backtesting | 4 | Interface defined |
 | Paper Trading | 5 | Interface defined |
 | Trade Journal | 5 | Interface defined |
 | Analytics | 6 | Interface defined |
@@ -44,6 +44,15 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 - **Charts:** TradingView Lightweight Charts
 
 ## Recent Phases
+
+### Phase 5B — Backtesting Engine
+- Wraps Phase 5A ReplayController for deterministic strategy evaluation
+- All 27 performance metrics: P&L, win rate, profit factor, expectancy, drawdown, streaks, directional
+- Equity curve generation after every closed trade
+- Parameter sweeps: grid search across config combinations
+- 8 API endpoints: run, dry-run, batch, sweeps, trades, metrics, statistics
+- 40 tests — deterministic output verified
+- Full documentation in `docs/BACKTESTING.md`
 
 ### Phase 5A — Historical Replay Engine
 - Deterministic bar-by-bar replay through complete engine pipeline

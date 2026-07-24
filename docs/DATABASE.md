@@ -37,8 +37,9 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | replay_sessions | Replay session config + state | No | ✅ Phase 5A |
 | replay_snapshots | Per-bar pipeline state snapshots | No | ✅ Phase 5A |
 | replay_events | Engine events during replay | No | ✅ Phase 5A |
-| backtest_runs | Backtest configuration + results | No |
-| backtest_trades | Individual backtest trades | No |
+| backtest_runs | Backtest config + results | No | ✅ Phase 5B |
+| backtest_trades | Individual backtest trades | No | ✅ Phase 5B |
+| backtest_metrics | Aggregated metrics per run | No | ✅ Phase 5B |
 | paper_runs | Paper trading sessions | No |
 | audit_logs | All system actions | No |
 | strategies | Strategy versions + config | No |
