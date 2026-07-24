@@ -29,6 +29,9 @@ from app.models.replay import (
 from app.models.backtesting import (
     BacktestRun, BacktestTrade, BacktestMetrics,
 )  # noqa: F401
+from app.models.analytics import (
+    AnalyticsReport, StrategyComparison,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -43,4 +46,5 @@ __all__ = [
     "PositionRecommendation", "PositionSizingRule", "PositionSizingEvaluation",
     "ReplaySession", "ReplaySnapshot", "ReplayEvent",
     "BacktestRun", "BacktestTrade", "BacktestMetrics",
+    "AnalyticsReport", "StrategyComparison",
 ]

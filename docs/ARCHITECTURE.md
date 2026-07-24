@@ -27,6 +27,7 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 | Trade Management | 4C | ✅ Complete |
 | Historical Replay | 5A | ✅ Complete |
 | Backtesting | 5B | ✅ Complete |
+| Performance Analytics | 5C | ✅ Complete |
 | Order Manager | 7 | Interface defined |
 | Paper Trading | 5 | Interface defined |
 | Trade Journal | 5 | Interface defined |
@@ -44,6 +45,17 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 - **Charts:** TradingView Lightweight Charts
 
 ## Recent Phases
+
+### Phase 5C — Performance Analytics
+- Pure-function analytics consuming Phase 5B data — never touches bars
+- Risk-adjusted: Sharpe, Sortino, Calmar ratios
+- Advanced drawdown: ulcer index, recovery factor, duration
+- CAGR, monthly returns, best/worst month
+- Trade distributions, histograms, rolling analytics
+- Strategy comparison, full report generation, chart datasets
+- 7 API endpoints
+- 37 tests (2 DB-dependent skipped)
+- Full documentation in `docs/PERFORMANCE_ANALYTICS.md`
 
 ### Phase 5B — Backtesting Engine
 - Wraps Phase 5A ReplayController for deterministic strategy evaluation
