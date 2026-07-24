@@ -50,7 +50,10 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | live_orders | Broker-routed orders | No | ✅ Phase 6B |
 | live_executions | Broker fill records | No | ✅ Phase 6B |
 | broker_connection_logs | Connection event audit | No | ✅ Phase 6B |
-| audit_logs | All system actions | No |
+| system_health | Component health checks | No | ✅ Phase 7A |
+| alerts | Monitoring alerts | No | ✅ Phase 7A |
+| audit_logs | Immutable audit trail | No | ✅ Phase 7A |
+| performance_metrics | Time-series metrics | No | ✅ Phase 7A |
 | strategies | Strategy versions + config | No |
 | risk_profiles | Risk parameter sets | No |
 | users | Authentication | No |

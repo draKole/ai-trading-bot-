@@ -30,6 +30,7 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 | Performance Analytics | 5C | ✅ Complete |
 | Paper Trading | 6A | ✅ Complete |
 | Live Broker Integration | 6B | ✅ Complete |
+| Production Monitoring | 7A | ✅ Complete |
 | Order Manager | 7 | Interface defined |
 | Trade Journal | 5 | Interface defined |
 | Analytics | 6 | Interface defined |
@@ -46,6 +47,17 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 - **Charts:** TradingView Lightweight Charts
 
 ## Recent Phases
+
+### Phase 7A — Production Monitoring
+- Read-only observability: health checks, metrics, alerts, audit logging
+- 7 health endpoints: system, database, broker, market-data, live/paper trading, workers
+- Alert lifecycle: create → acknowledge → resolve with severity levels
+- Immutable audit logs: signals, risk, sizing, management, broker, manual actions
+- Time-series metrics with aggregation and tags
+- Dashboard API combining health + metrics + alerts
+- 20 API endpoints total
+- 29 tests (all pass, no DB dependencies)
+- Full documentation in `docs/MONITORING.md`
 
 ### Phase 6B — Live Broker Integration
 - Abstract BrokerAdapter interface — connect, place/modify/cancel orders, positions, account
