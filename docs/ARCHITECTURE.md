@@ -31,6 +31,7 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 | Paper Trading | 6A | ✅ Complete |
 | Live Broker Integration | 6B | ✅ Complete |
 | Production Monitoring | 7A | ✅ Complete |
+| Deployment & Infrastructure | 7B | ✅ Complete |
 | Order Manager | 7 | Interface defined |
 | Trade Journal | 5 | Interface defined |
 | Analytics | 6 | Interface defined |
@@ -47,6 +48,15 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 - **Charts:** TradingView Lightweight Charts
 
 ## Recent Phases
+
+### Phase 7B — Deployment & Infrastructure
+- Multi-stage Dockerfile (builder + production, non-root user, health check)
+- Docker Compose: API + PostgreSQL + Redis + workers with health checks
+- Infrastructure API: deployment status, version, readiness, liveness, config validation, diagnostics
+- Environment-driven configuration with secrets protection
+- Alembic 018 placeholder migration
+- 20 tests: config, secrets, startup, API endpoints, Docker/Compose file existence
+- Full documentation in `docs/DEPLOYMENT.md`
 
 ### Phase 7A — Production Monitoring
 - Read-only observability: health checks, metrics, alerts, audit logging

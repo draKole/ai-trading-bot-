@@ -27,6 +27,7 @@ from app.api import (
     paper_trading,
     live_trading,
     monitoring,
+    infrastructure,
 )
 
 api_router = APIRouter()
@@ -55,3 +56,4 @@ api_router.include_router(replay.router, prefix="/replay", tags=["Replay"])
 api_router.include_router(paper_trading.router, prefix="/paper", tags=["Paper Trading"])
 api_router.include_router(live_trading.router, prefix="/live", tags=["Live Trading"])
 api_router.include_router(monitoring.router, prefix="/monitoring", tags=["Monitoring"])
+api_router.include_router(infrastructure.router, prefix="/infrastructure", tags=["Infrastructure"])
