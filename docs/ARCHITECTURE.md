@@ -29,6 +29,7 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 | Backtesting | 5B | ✅ Complete |
 | Performance Analytics | 5C | ✅ Complete |
 | Paper Trading | 6A | ✅ Complete |
+| Live Broker Integration | 6B | ✅ Complete |
 | Order Manager | 7 | Interface defined |
 | Trade Journal | 5 | Interface defined |
 | Analytics | 6 | Interface defined |
@@ -45,6 +46,15 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 - **Charts:** TradingView Lightweight Charts
 
 ## Recent Phases
+
+### Phase 6B — Live Broker Integration
+- Abstract BrokerAdapter interface — connect, place/modify/cancel orders, positions, account
+- TradovateAdapter: simulated implementation with fill, cancel, position tracking
+- LiveTradingController: session management, order routing, sync
+- SafetyController: kill switch, max positions, duplicate prevention, daily loss limit
+- 14 API endpoints for connect, orders, positions, executions, emergency stop
+- 32 tests (1 DB-dependent skipped)
+- Full documentation in `docs/LIVE_BROKER.md`
 
 ### Phase 6A — Paper Trading Engine
 - Simulated execution with the full strategy pipeline

@@ -35,6 +35,9 @@ from app.models.analytics import (
 from app.models.paper_trading import (
     PaperTradingSession, PaperOrder, PaperPosition, PaperExecution,
 )  # noqa: F401
+from app.models.live_trading import (
+    LiveTradingSession, LiveOrder, LiveExecution, BrokerConnectionLog,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -51,4 +54,5 @@ __all__ = [
     "BacktestRun", "BacktestTrade", "BacktestMetrics",
     "AnalyticsReport", "StrategyComparison",
     "PaperTradingSession", "PaperOrder", "PaperPosition", "PaperExecution",
+    "LiveTradingSession", "LiveOrder", "LiveExecution", "BrokerConnectionLog",
 ]

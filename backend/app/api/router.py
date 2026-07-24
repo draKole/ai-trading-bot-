@@ -25,6 +25,7 @@ from app.api import (
     settings as settings_router,
     replay,
     paper_trading,
+    live_trading,
 )
 
 api_router = APIRouter()
@@ -51,3 +52,4 @@ api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboar
 api_router.include_router(settings_router.router, prefix="/settings", tags=["Settings"])
 api_router.include_router(replay.router, prefix="/replay", tags=["Replay"])
 api_router.include_router(paper_trading.router, prefix="/paper", tags=["Paper Trading"])
+api_router.include_router(live_trading.router, prefix="/live", tags=["Live Trading"])

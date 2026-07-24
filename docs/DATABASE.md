@@ -46,6 +46,10 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | paper_orders | Simulated orders | No | ✅ Phase 6A |
 | paper_positions | Open/closed positions | No | ✅ Phase 6A |
 | paper_executions | Order fill records | No | ✅ Phase 6A |
+| live_trading_sessions | Live broker account sessions | No | ✅ Phase 6B |
+| live_orders | Broker-routed orders | No | ✅ Phase 6B |
+| live_executions | Broker fill records | No | ✅ Phase 6B |
+| broker_connection_logs | Connection event audit | No | ✅ Phase 6B |
 | audit_logs | All system actions | No |
 | strategies | Strategy versions + config | No |
 | risk_profiles | Risk parameter sets | No |
