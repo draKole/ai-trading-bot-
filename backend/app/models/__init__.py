@@ -23,6 +23,9 @@ from app.models.position_sizing import (
 from app.models.trade_management import (
     ManagedTrade, TradeEvent, TradeManagementRule,
 )  # noqa: F401
+from app.models.replay import (
+    ReplaySession, ReplaySnapshot, ReplayEvent,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -35,4 +38,5 @@ __all__ = [
     "MarketBias", "TradeSetup", "StrategyRule", "StrategyEvaluation",
     "RiskReport", "RiskRule", "RiskEvaluation",
     "PositionRecommendation", "PositionSizingRule", "PositionSizingEvaluation",
+    "ReplaySession", "ReplaySnapshot", "ReplayEvent",
 ]

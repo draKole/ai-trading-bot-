@@ -34,6 +34,9 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | managed_trades | Stateful trade records | No | ✅ Phase 4C |
 | trade_events | State transition log | No | ✅ Phase 4C |
 | trade_management_rules | Management rule defs | No | ✅ Phase 4C |
+| replay_sessions | Replay session config + state | No | ✅ Phase 5A |
+| replay_snapshots | Per-bar pipeline state snapshots | No | ✅ Phase 5A |
+| replay_events | Engine events during replay | No | ✅ Phase 5A |
 | backtest_runs | Backtest configuration + results | No |
 | backtest_trades | Individual backtest trades | No |
 | paper_runs | Paper trading sessions | No |

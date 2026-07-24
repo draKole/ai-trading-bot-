@@ -25,6 +25,7 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 | Risk Engine | 4A | ✅ Complete |
 | Position Sizing | 4B | ✅ Complete |
 | Trade Management | 4C | ✅ Complete |
+| Historical Replay | 5A | ✅ Complete |
 | Order Manager | 7 | Interface defined |
 | Backtesting | 4 | Interface defined |
 | Paper Trading | 5 | Interface defined |
@@ -43,6 +44,17 @@ Market Data → Normalization → Feature Engines → Confluence Scorer → Setu
 - **Charts:** TradingView Lightweight Charts
 
 ## Recent Phases
+
+### Phase 5A — Historical Replay Engine
+- Deterministic bar-by-bar replay through complete engine pipeline
+- State machine: IDLE → RUNNING → PAUSED → STOPPED
+- Strict no-lookahead: bar N can only see bars [0..N]
+- Six replay modes: candle_by_candle, continuous, until_timestamp, until_event, by_session, by_trading_day
+- Per-bar ReplaySnapshot captures full pipeline state
+- ReplayEvent records every engine event with source attribution
+- 11 API endpoints — start, pause, resume, step, jump_to, dry-run
+- 53 tests — deterministic output verified
+- Full documentation in `docs/HISTORICAL_REPLAY.md`
 
 ### Phase 1A — Market Data Foundation
 - Multi-provider data ingestion (CSV, yfinance)
