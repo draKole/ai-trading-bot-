@@ -1,13 +1,10 @@
-"""Dashboard Service — aggregate data for the UI.
+"""Operator Dashboard — read-only aggregation of platform state."""
 
-Combines data from all modules into dashboard-ready payloads:
-overview, live monitor, signals, analytics, risk center.
-"""
+from app.services.dashboard.engine import (
+    DashboardController, TimelineEvent, WidgetData,
+)
+from app.services.dashboard.service import DashboardService
 
-
-class DashboardService:
-    """Aggregate dashboard data from all system modules.
-
-    Not yet implemented — interface defined for Phase 6.
-    """
-    pass
+__all__ = [
+    "DashboardController", "TimelineEvent", "WidgetData", "DashboardService",
+]

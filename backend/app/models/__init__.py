@@ -55,6 +55,9 @@ from app.models.optimization import (
 from app.models.scanner import (
     Watchlist, WatchlistSymbol, ScanRun, ScanResult, Opportunity,
 )  # noqa: F401
+from app.models.dashboard import (
+    DashboardSnapshot, DashboardPreference, DashboardLayout,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -79,4 +82,5 @@ __all__ = [
     "OptimizationRun", "ParameterSet", "OptimizationResult",
     "WalkForwardRun", "MonteCarloRun",
     "Watchlist", "WatchlistSymbol", "ScanRun", "ScanResult", "Opportunity",
+    "DashboardSnapshot", "DashboardPreference", "DashboardLayout",
 ]
