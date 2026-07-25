@@ -48,6 +48,10 @@ from app.models.portfolio import (
     Portfolio, PortfolioAccount, AllocationRule,
     PortfolioPosition, PortfolioStatistic,
 )  # noqa: F401
+from app.models.optimization import (
+    OptimizationRun, ParameterSet, OptimizationResult,
+    WalkForwardRun, MonteCarloRun,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -69,4 +73,6 @@ __all__ = [
     "User", "Role", "UserSession", "ApiKey", "SecurityEvent", "SecretMetadata",
     "Portfolio", "PortfolioAccount", "AllocationRule",
     "PortfolioPosition", "PortfolioStatistic",
+    "OptimizationRun", "ParameterSet", "OptimizationResult",
+    "WalkForwardRun", "MonteCarloRun",
 ]

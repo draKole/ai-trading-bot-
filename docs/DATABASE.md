@@ -65,6 +65,11 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | allocation_rules | Allocation method config | No | ✅ Phase 8A |
 | portfolio_positions | Aggregated positions | No | ✅ Phase 8A |
 | portfolio_statistics | Time-series stats | No | ✅ Phase 8A |
+| optimization_runs | Optimization runs | No | ✅ Phase 8B |
+| parameter_sets | Parameter combos | No | ✅ Phase 8B |
+| optimization_results | Result records | No | ✅ Phase 8B |
+| walk_forward_runs | Walk-forward results | No | ✅ Phase 8B |
+| monte_carlo_runs | Monte Carlo results | No | ✅ Phase 8B |
 | strategies | Strategy versions + config | No |
 | risk_profiles | Risk parameter sets | No |
 
