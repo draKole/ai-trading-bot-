@@ -60,6 +60,11 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | api_keys | Service account keys | No | ✅ Phase 7C |
 | security_events | Security audit trail | No | ✅ Phase 7C |
 | secret_metadata | Secret metadata (no values) | No | ✅ Phase 7C |
+| portfolios | Portfolio definitions | No | ✅ Phase 8A |
+| portfolio_accounts | Accounts with allocation | No | ✅ Phase 8A |
+| allocation_rules | Allocation method config | No | ✅ Phase 8A |
+| portfolio_positions | Aggregated positions | No | ✅ Phase 8A |
+| portfolio_statistics | Time-series stats | No | ✅ Phase 8A |
 | strategies | Strategy versions + config | No |
 | risk_profiles | Risk parameter sets | No |
 

@@ -29,6 +29,7 @@ from app.api import (
     monitoring,
     infrastructure,
     security,
+    portfolio,
 )
 
 api_router = APIRouter()
@@ -59,3 +60,4 @@ api_router.include_router(live_trading.router, prefix="/live", tags=["Live Tradi
 api_router.include_router(monitoring.router, prefix="/monitoring", tags=["Monitoring"])
 api_router.include_router(infrastructure.router, prefix="/infrastructure", tags=["Infrastructure"])
 api_router.include_router(security.router, prefix="/auth", tags=["Security"])
+api_router.include_router(portfolio.router, prefix="/portfolio", tags=["Portfolio"])

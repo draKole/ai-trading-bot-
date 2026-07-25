@@ -44,6 +44,10 @@ from app.models.monitoring import (
 from app.models.security import (
     User, Role, UserSession, ApiKey, SecurityEvent, SecretMetadata,
 )  # noqa: F401
+from app.models.portfolio import (
+    Portfolio, PortfolioAccount, AllocationRule,
+    PortfolioPosition, PortfolioStatistic,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -63,4 +67,6 @@ __all__ = [
     "LiveTradingSession", "LiveOrder", "LiveExecution", "BrokerConnectionLog",
     "SystemHealth", "Alert", "AuditLog", "PerformanceMetric",
     "User", "Role", "UserSession", "ApiKey", "SecurityEvent", "SecretMetadata",
+    "Portfolio", "PortfolioAccount", "AllocationRule",
+    "PortfolioPosition", "PortfolioStatistic",
 ]
