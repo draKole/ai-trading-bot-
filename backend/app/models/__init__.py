@@ -58,6 +58,9 @@ from app.models.scanner import (
 from app.models.dashboard import (
     DashboardSnapshot, DashboardPreference, DashboardLayout,
 )  # noqa: F401
+from app.models.copilot import (
+    CopilotSession, Conversation, ConversationMessage, CopilotFeedback,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -83,4 +86,5 @@ __all__ = [
     "WalkForwardRun", "MonteCarloRun",
     "Watchlist", "WatchlistSymbol", "ScanRun", "ScanResult", "Opportunity",
     "DashboardSnapshot", "DashboardPreference", "DashboardLayout",
+    "CopilotSession", "Conversation", "ConversationMessage", "CopilotFeedback",
 ]
