@@ -70,6 +70,11 @@ PostgreSQL 16 + TimescaleDB extension for time-series optimization.
 | optimization_results | Result records | No | ✅ Phase 8B |
 | walk_forward_runs | Walk-forward results | No | ✅ Phase 8B |
 | monte_carlo_runs | Monte Carlo results | No | ✅ Phase 8B |
+| watchlists | Scanner watchlists | No | ✅ Phase 8C |
+| watchlist_symbols | Watchlist entries | No | ✅ Phase 8C |
+| scan_runs | Scan history | No | ✅ Phase 8C |
+| scan_results | Per-symbol results | No | ✅ Phase 8C |
+| opportunities | Ranked opportunities | No | ✅ Phase 8C |
 | strategies | Strategy versions + config | No |
 | risk_profiles | Risk parameter sets | No |
 

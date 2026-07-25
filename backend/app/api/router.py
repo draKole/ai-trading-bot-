@@ -31,6 +31,7 @@ from app.api import (
     security,
     portfolio,
     optimization,
+    scanner,
 )
 
 api_router = APIRouter()
@@ -63,3 +64,4 @@ api_router.include_router(infrastructure.router, prefix="/infrastructure", tags=
 api_router.include_router(security.router, prefix="/auth", tags=["Security"])
 api_router.include_router(portfolio.router, prefix="/portfolio", tags=["Portfolio"])
 api_router.include_router(optimization.router, prefix="/optimization", tags=["Optimization"])
+api_router.include_router(scanner.router, prefix="/scanner", tags=["Scanner"])

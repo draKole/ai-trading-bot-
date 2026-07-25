@@ -52,6 +52,9 @@ from app.models.optimization import (
     OptimizationRun, ParameterSet, OptimizationResult,
     WalkForwardRun, MonteCarloRun,
 )  # noqa: F401
+from app.models.scanner import (
+    Watchlist, WatchlistSymbol, ScanRun, ScanResult, Opportunity,
+)  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -75,4 +78,5 @@ __all__ = [
     "PortfolioPosition", "PortfolioStatistic",
     "OptimizationRun", "ParameterSet", "OptimizationResult",
     "WalkForwardRun", "MonteCarloRun",
+    "Watchlist", "WatchlistSymbol", "ScanRun", "ScanResult", "Opportunity",
 ]
