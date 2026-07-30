@@ -2,7 +2,7 @@
 # Stage 1: Build
 FROM python:3.12-slim AS builder
 WORKDIR /app
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Stage 2: Production
@@ -13,14 +13,17 @@ LABEL org.drake.trading.component="backend"
 # Non-root user
 RUN groupadd -r drake && useradd -r -g drake -s /bin/false drake
 
-WORKDIR /app
+WORKDIR /app/backend
 
 # Copy installed packages from builder
 COPY --from=builder /root/.local /home/drake/.local
 ENV PATH=/home/drake/.local/bin:$PATH
 
 # Copy application
-COPY . .
+COPY backend/ .
+COPY Dockerfile /app/Dockerfile
+COPY .dockerignore /app/.dockerignore
+COPY docker-compose.yml /app/docker-compose.yml
 
 # Create directories
 RUN mkdir -p /var/log/drake /var/lib/drake/data && \

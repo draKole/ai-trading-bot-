@@ -69,12 +69,6 @@ def upgrade() -> None:
         ["instrument_id", "timeframe", "timestamp"],
     )
 
-    # Convert to TimescaleDB hypertable
-    op.execute(
-        "SELECT create_hypertable('bars', 'timestamp', "
-        "chunk_time_interval => INTERVAL '7 days', "
-        "if_not_exists => TRUE)"
-    )
 
     # ─── Seed default instruments ────────────────────────────
     op.execute("""

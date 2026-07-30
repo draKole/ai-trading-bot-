@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import requests
 import yfinance as yf
 
 from app.services.market_data.provider import DataProvider, OHLCVBar
@@ -61,34 +62,61 @@ class YFinanceProvider(DataProvider):
     ) -> list[OHLCVBar]:
         """Fetch historical bars from Yahoo Finance."""
         yf_symbol = self._to_yf_symbol(instrument)
-        yf_interval = self._to_yf_interval(timeframe)
+        days = (end - start).days
 
-        ticker = yf.Ticker(yf_symbol)
-        df = ticker.history(
-            interval=yf_interval,
-            start=start,
-            end=end,
-            auto_adjust=False,
-        )
+        if timeframe == "1m":
+            if days <= 7:
+                yf_interval = "1m"
+            elif days <= 60:
+                yf_interval = "5m"
+            elif days <= 730:
+                yf_interval = "60m"
+            else:
+                yf_interval = "1d"
+        else:
+            yf_interval = self._to_yf_interval(timeframe)
 
-        if df.empty:
-            return []
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_symbol}"
+
+        params = {
+            "interval": yf_interval,
+            "period1": int(start.timestamp()),
+            "period2": int(end.timestamp()),
+            "includePrePost": "false",
+            "events": "div,splits",
+        }
+
+        headers = {
+            "User-Agent": "Mozilla/5.0"
+        }
+
+        response = requests.get(url, params=params, headers=headers)
+        response.raise_for_status()
+
+        data = response.json()["chart"]["result"][0]
+
+        timestamps = data["timestamp"]
+        quote = data["indicators"]["quote"][0]
 
         bars: list[OHLCVBar] = []
-        for ts, row in df.iterrows():
-            bar = OHLCVBar(
-                instrument=instrument,
-                timeframe=timeframe,
-                timestamp=ts.to_pydatetime(),
-                open=float(row["Open"]),
-                high=float(row["High"]),
-                low=float(row["Low"]),
-                close=float(row["Close"]),
-                volume=int(row["Volume"]),
-                provider="yfinance",
-            )
-            if bar.is_valid():
-                bars.append(bar)
+
+        for i, ts in enumerate(timestamps):
+            if quote["open"][i] is None:
+                continue
+
+            bars.append(
+    OHLCVBar(
+        instrument=instrument,
+        timeframe=timeframe,
+        timestamp=datetime.fromtimestamp(ts),
+        open=float(quote["open"][i]),
+        high=float(quote["high"][i]),
+        low=float(quote["low"][i]),
+        close=float(quote["close"][i]),
+        volume=int(quote["volume"][i] or 0),
+        provider="yfinance",
+    )
+)
 
         return bars
 

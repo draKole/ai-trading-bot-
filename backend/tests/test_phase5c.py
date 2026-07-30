@@ -16,7 +16,10 @@ from app.services.analytics.engine import (
     generate_report, compare_strategies, AnalyticsController,
 )
 
+from datetime import datetime
 
+from app.models.backtesting import BacktestRun
+from app.core.database import async_session_factory
 # ─── Helpers ─────────────────────────────────────────────────
 
 def _make_trade(pnl: float = 100.0, r_multiple: float = 1.0,
@@ -395,6 +398,26 @@ async def test_analytics_generate_api():
     equity = _make_equity(trades)
     metrics = {"total_trades": 10, "net_profit": 500.0, "win_rate": 0.6,
                "profit_factor": 1.5, "expectancy": 30.0, "max_drawdown_pct": 3.0}
+ 
+    async with async_session_factory() as session:
+        existing = await session.get(BacktestRun, 1)
+
+        if existing is None:
+            session.add(
+                BacktestRun(
+                    id=1,
+                    instrument="ES",
+                    timeframe="5m",
+                    start_time=datetime.utcnow(),
+                    end_time=datetime.utcnow(),
+                    status="completed",
+                    total_bars=0,
+                )
+            )
+            await session.commit()
+
+        result = await session.get(BacktestRun, 1)
+        print("BACKTEST:", result)
 
     transport = ASGITransport(app=app)
     try:

@@ -17,7 +17,7 @@ pydantic==2.10.3
 pydantic-settings==2.7.0
 
 # ─── Data Processing ─────────────────────────────────────────
-polars==1.16.0
+polars-lts-cpu==1.16.0
 pandas==2.2.3
 numpy==2.2.0
 
