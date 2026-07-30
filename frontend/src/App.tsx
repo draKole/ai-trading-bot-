@@ -12,6 +12,8 @@ import DataImport from './pages/DataImport'
 import Instruments from './pages/Instruments'
 import Backtesting from './pages/Backtesting'
 import PaperTrading from './pages/PaperTrading'
+import LiveTrading from './pages/LiveTrading'
+import AuditLog from './pages/AuditLog'
 
 export default function App() {
   return (
@@ -29,6 +31,8 @@ export default function App() {
         <Route path="/instruments" element={<Instruments />} />
         <Route path="/backtesting" element={<Backtesting />} />
         <Route path="/paper-trading" element={<PaperTrading />} />
+        <Route path="/live-trading" element={<LiveTrading />} />
+        <Route path="/audit" element={<AuditLog />} />
       </Route>
     </Routes>
   )
