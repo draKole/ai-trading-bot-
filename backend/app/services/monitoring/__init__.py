@@ -8,6 +8,7 @@ Read-only with respect to trading decisions. Components:
 
 from app.services.monitoring.engine import (
     MonitoringController, HealthCheck, MetricPoint,
+    SystemMetrics, TradingStatus,
 )
 from app.services.monitoring.alerts import (
     AlertManager, Alert, AlertSeverity, AlertStatus,
@@ -16,6 +17,7 @@ from app.services.monitoring.service import MonitoringService
 
 __all__ = [
     "MonitoringController", "HealthCheck", "MetricPoint",
+    "SystemMetrics", "TradingStatus",
     "AlertManager", "Alert", "AlertSeverity", "AlertStatus",
     "MonitoringService",
 ]

@@ -61,7 +61,7 @@ class TestHealthChecks:
     def test_run_all_checks(self):
         c = MonitoringController()
         results = c.run_all_checks()
-        assert len(results) == 7
+        assert len(results) == 9  # system, api, db, redis, broker, market, live, paper, workers
         assert results[0].component == "system"
 
     def test_health_summary(self):
@@ -239,7 +239,8 @@ async def test_monitoring_health_api():
             response = await client.get("/api/v1/monitoring/health")
             assert response.status_code == 200
             data = response.json()
-            assert "overall" in data
+            assert "health" in data  # dashboard structure with nested health
+            assert "overall" in data["health"]
     except ConnectionRefusedError:
         pytest.skip("Database not available")
 

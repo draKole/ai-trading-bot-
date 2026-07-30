@@ -1,4 +1,9 @@
-"""Monitoring API — health, alerts, audit logs, metrics, dashboard."""
+"""Monitoring API — health, alerts, audit logs, metrics, dashboard.
+
+Sprint 1a/b: Real async probes for PostgreSQL, Redis, broker, market data,
+workers. Exposes mode, uptime, CPU/memory, active positions, open orders,
+and daily signal/trade counts.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +13,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
+from app.core.database import get_db, check_db_connection
+from app.core.redis import check_redis_connection
 from app.services.monitoring import (
     MonitoringService, MonitoringController, AlertManager,
 )
@@ -19,77 +25,126 @@ _controller = MonitoringController()
 _alert_manager = AlertManager()
 
 
+async def _get_controller() -> MonitoringController:
+    """Return the singleton controller, wiring real probes if not already done."""
+    if _controller._db_probe is None:
+        _controller.register_db_probe(check_db_connection)
+    if _controller._redis_probe is None:
+        _controller.register_redis_probe(check_redis_connection)
+    return _controller
+
+
 # ─── Health ──────────────────────────────────────────────
+
 
 @router.get("/health")
 async def get_health():
-    """Overall health status."""
-    return _controller.get_health_summary()
+    """Overall health status with all components probed."""
+    ctrl = await _get_controller()
+    await ctrl.run_all_probes()
+    return ctrl.get_dashboard_data()
 
 
 @router.get("/health/system")
 async def health_system():
-    return _controller.check_system().to_dict()
+    ctrl = await _get_controller()
+    return {
+        "system": ctrl.check_system().to_dict(),
+        "system_metrics": ctrl.get_system_metrics().to_dict(),
+        "mode": ctrl.get_mode_info(),
+    }
 
 
 @router.get("/health/database")
-async def health_database(db: AsyncSession = Depends(get_db)):
-    try:
-        await db.execute(__import__("sqlalchemy").text("SELECT 1"))
-        return _controller.check_database(True).to_dict()
-    except Exception:
-        return _controller.check_database(False).to_dict()
+async def health_database():
+    ctrl = await _get_controller()
+    result = await ctrl.probe_database()
+    return result.to_dict()
+
+
+@router.get("/health/redis")
+async def health_redis():
+    ctrl = await _get_controller()
+    result = await ctrl.probe_redis()
+    return result.to_dict()
 
 
 @router.get("/health/broker")
 async def health_broker():
-    return _controller.check_broker(False).to_dict()
+    ctrl = await _get_controller()
+    result = await ctrl.probe_broker()
+    return result.to_dict()
 
 
 @router.get("/health/market-data")
 async def health_market_data():
-    return _controller.check_market_data(True).to_dict()
-
-
-@router.get("/health/live-trading")
-async def health_live_trading():
-    return _controller.check_live_trading(False).to_dict()
-
-
-@router.get("/health/paper-trading")
-async def health_paper_trading():
-    return _controller.check_paper_trading(0).to_dict()
+    ctrl = await _get_controller()
+    result = await ctrl.probe_market_data()
+    return result.to_dict()
 
 
 @router.get("/health/workers")
 async def health_workers():
-    return _controller.check_workers(True).to_dict()
+    ctrl = await _get_controller()
+    result = await ctrl.probe_workers()
+    return result.to_dict()
+
+
+@router.get("/health/live-trading")
+async def health_live_trading():
+    ctrl = await _get_controller()
+    return ctrl.check_live_trading(False).to_dict()
+
+
+@router.get("/health/paper-trading")
+async def health_paper_trading():
+    ctrl = await _get_controller()
+    return ctrl.check_paper_trading(0).to_dict()
 
 
 @router.post("/health/run-all")
 async def run_all_checks(db: AsyncSession = Depends(get_db)):
-    try:
-        await db.execute(__import__("sqlalchemy").text("SELECT 1"))
-        db_ok = True
-    except Exception:
-        db_ok = False
+    ctrl = await _get_controller()
+    results = await ctrl.run_all_probes()
 
-    results = _controller.run_all_checks(db_ok=db_ok)
     service = MonitoringService(db)
-    await service.store_health([r.to_dict() for r in results])
-    return {"checks": [r.to_dict() for r in results],
-            "summary": _controller.get_health_summary()}
+    try:
+        await service.store_health([r.to_dict() for r in results])
+    except Exception:
+        pass  # Persistence is best-effort
+
+    return {
+        "checks": [r.to_dict() for r in results],
+        "summary": ctrl.get_health_summary(),
+        "system": ctrl.get_system_metrics().to_dict(),
+        "mode": ctrl.get_mode_info(),
+        "trading": ctrl.get_trading_status().to_dict(),
+    }
+
+
+# ─── Monitoring Status (Sprint 1b) ──────────────────────
+
+
+@router.get("/status")
+async def get_monitoring_status():
+    """Consolidated system status with all fields."""
+    ctrl = await _get_controller()
+    await ctrl.run_all_probes()
+    return ctrl.get_dashboard_data()
 
 
 # ─── Alerts ──────────────────────────────────────────────
+
 
 @router.get("/alerts")
 async def list_alerts(
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
 ):
-    return {"alerts": _alert_manager.get_alerts(status=status, severity=severity),
-            "summary": _alert_manager.get_summary()}
+    return {
+        "alerts": _alert_manager.get_alerts(status=status, severity=severity),
+        "summary": _alert_manager.get_summary(),
+    }
 
 
 @router.post("/alerts/create")
@@ -129,6 +184,7 @@ async def resolve_alert(
 
 # ─── Audit Logs ──────────────────────────────────────────
 
+
 @router.get("/audit-logs")
 async def get_audit_logs(
     event_type: Optional[str] = Query(None),
@@ -154,14 +210,18 @@ async def create_audit_log(
     service = MonitoringService(db)
     detail = json.loads(detail_json) if detail_json else {}
     log_id = await service.store_audit_log(
-        event_type=event_type, source=source,
-        entity_type=entity_type, entity_id=entity_id,
-        detail=detail, operator=operator,
+        event_type=event_type,
+        source=source,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        detail=detail,
+        operator=operator,
     )
     return {"id": log_id, "status": "created"}
 
 
 # ─── Metrics ─────────────────────────────────────────────
+
 
 @router.get("/metrics")
 async def get_metrics(
@@ -170,10 +230,11 @@ async def get_metrics(
     db: AsyncSession = Depends(get_db),
 ):
     """Get stored metrics or in-memory metrics."""
+    ctrl = await _get_controller()
     service = MonitoringService(db)
     stored = await service.get_metrics(name=name, limit=limit)
     if not stored:
-        return {"metrics": _controller.get_metrics(name=name, limit=limit)}
+        return {"metrics": ctrl.get_metrics(name=name, limit=limit)}
     return {"count": len(stored), "metrics": stored}
 
 
@@ -184,8 +245,9 @@ async def record_metric(
     tags_json: str = Query("{}"),
     db: AsyncSession = Depends(get_db),
 ):
+    ctrl = await _get_controller()
     tags = json.loads(tags_json) if tags_json else {}
-    _controller.record_metric(name, value, tags)
+    ctrl.record_metric(name, value, tags)
     service = MonitoringService(db)
     metric_id = await service.store_metric(name, value, tags)
     return {"id": metric_id, "name": name, "value": value}
@@ -193,11 +255,13 @@ async def record_metric(
 
 # ─── Dashboard ───────────────────────────────────────────
 
+
 @router.get("/dashboard")
 async def get_dashboard():
     """Dashboard data: health + metrics + alerts summary."""
+    ctrl = await _get_controller()
     return {
-        ** _controller.get_dashboard_data(),
+        **ctrl.get_dashboard_data(),
         "alerts": _alert_manager.get_summary(),
         "recent_alerts": _alert_manager.get_alerts(status="active")[:5],
     }
@@ -205,10 +269,12 @@ async def get_dashboard():
 
 # ─── Statistics ──────────────────────────────────────────
 
+
 @router.get("/statistics")
 async def get_statistics(
     db: AsyncSession = Depends(get_db),
 ):
+    ctrl = await _get_controller()
     service = MonitoringService(db)
     alerts = await service.get_alerts()
     active = sum(1 for a in alerts if a["status"] == "active")
@@ -217,5 +283,5 @@ async def get_statistics(
         "total_alerts": len(alerts),
         "active_alerts": active,
         "active_critical": critical,
-        "dashboard": _controller.get_dashboard_data(),
+        "dashboard": ctrl.get_dashboard_data(),
     }
