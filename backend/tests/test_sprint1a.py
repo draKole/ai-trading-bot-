@@ -428,3 +428,146 @@ class TestDeterminism:
         a2 = am2.create_alert("test", "msg", "warning")
         assert a1.status == a2.status
         assert a1.severity == a2.severity
+
+
+# ─── Sprint 1b API Tests ────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_api_health_returns_dashboard():
+    """GET /monitoring/health returns full dashboard structure."""
+    from app.main import app
+    from httpx import ASGITransport, AsyncClient
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/monitoring/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert "health" in data
+        assert "system" in data
+        assert "mode" in data
+        assert "trading" in data
+
+
+@pytest.mark.asyncio
+async def test_api_monitoring_status():
+    """GET /monitoring/status returns consolidated status."""
+    from app.main import app
+    from httpx import ASGITransport, AsyncClient
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/monitoring/status")
+        assert response.status_code == 200
+        data = response.json()
+        assert "health" in data
+        assert "system" in data
+        assert "trading" in data
+
+
+@pytest.mark.asyncio
+async def test_api_health_database():
+    """GET /health/database returns component health."""
+    from app.main import app
+    from httpx import ASGITransport, AsyncClient
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/monitoring/health/database")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["component"] == "database"
+        assert data["status"] in ("healthy", "unhealthy", "degraded", "unknown")
+
+
+@pytest.mark.asyncio
+async def test_api_health_redis():
+    """GET /health/redis returns component health."""
+    from app.main import app
+    from httpx import ASGITransport, AsyncClient
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/monitoring/health/redis")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["component"] == "redis"
+
+
+@pytest.mark.asyncio
+async def test_api_health_broker():
+    """GET /health/broker returns component health."""
+    from app.main import app
+    from httpx import ASGITransport, AsyncClient
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/monitoring/health/broker")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["component"] == "broker"
+
+
+@pytest.mark.asyncio
+async def test_api_health_market_data():
+    """GET /health/market-data returns component health."""
+    from app.main import app
+    from httpx import ASGITransport, AsyncClient
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/monitoring/health/market-data")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["component"] == "market_data"
+
+
+@pytest.mark.asyncio
+async def test_api_health_workers():
+    """GET /health/workers returns component health."""
+    from app.main import app
+    from httpx import ASGITransport, AsyncClient
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/monitoring/health/workers")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["component"] == "workers"
+
+
+@pytest.mark.asyncio
+async def test_api_health_system():
+    """GET /health/system returns system info with mode and metrics."""
+    from app.main import app
+    from httpx import ASGITransport, AsyncClient
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/monitoring/health/system")
+        assert response.status_code == 200
+        data = response.json()
+        assert "system" in data
+        assert "system_metrics" in data
+        assert "mode" in data
+        assert data["mode"]["mode"] in ("BACKTEST", "PAPER", "LIVE")
+
+
+@pytest.mark.asyncio
+async def test_api_alerts():
+    """GET /alerts returns alerts and summary."""
+    from app.main import app
+    from httpx import ASGITransport, AsyncClient
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/monitoring/alerts")
+        assert response.status_code == 200
+        data = response.json()
+        assert "alerts" in data
+        assert "summary" in data
+
+
+@pytest.mark.asyncio
+async def test_api_dashboard():
+    """GET /dashboard returns combined dashboard data."""
+    from app.main import app
+    from httpx import ASGITransport, AsyncClient
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/monitoring/dashboard")
+        assert response.status_code == 200
+        data = response.json()
+        assert "health" in data
+        assert "alerts" in data
