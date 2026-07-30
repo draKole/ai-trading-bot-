@@ -9,12 +9,50 @@ NOTE: yfinance support for CME futures is limited and varies by symbol.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 import requests
-import yfinance as yf
 
 from app.services.market_data.provider import DataProvider, OHLCVBar
+
+# Eastern Time offset: UTC-5 (EST), UTC-4 (EDT) — use fixed for simplicity
+ET_OFFSET = timedelta(hours=-5)
+
+# RTH session: 9:30 AM – 4:00 PM ET
+RTH_START_HOUR = 9
+RTH_START_MIN = 30
+RTH_END_HOUR = 16
+RTH_END_MIN = 0
+
+
+def _infer_session(ts: datetime) -> str:
+    """Infer trading session from timestamp (UTC → ET).
+
+    RTH = Regular Trading Hours (9:30-16:00 ET, Mon-Fri)
+    ETH = Extended Trading Hours (outside RTH)
+    """
+    et = ts.astimezone(timezone(ET_OFFSET))
+    # Weekday check: Monday=0, Sunday=6
+    if et.weekday() >= 5:
+        return "ETH"
+
+    rth_start = et.replace(hour=RTH_START_HOUR, minute=RTH_START_MIN, second=0, microsecond=0)
+    rth_end = et.replace(hour=RTH_END_HOUR, minute=RTH_END_MIN, second=0, microsecond=0)
+
+    if rth_start <= et < rth_end:
+        return "RTH"
+    return "ETH"
+
+
+def _compute_vwap(high: float, low: float, close: float, volume: int) -> float:
+    """Approximate VWAP as typical price when true VWAP is unavailable.
+
+    yfinance does not provide VWAP — we use (H + L + C) / 3 as a
+    reasonable approximation for VWAP per bar.
+    """
+    if volume <= 0:
+        return round((high + low + close) / 3.0, 6)
+    return round((high + low + close) / 3.0, 6)
 
 
 class YFinanceProvider(DataProvider):
@@ -104,22 +142,32 @@ class YFinanceProvider(DataProvider):
             if quote["open"][i] is None:
                 continue
 
+            o = float(quote["open"][i])
+            h = float(quote["high"][i])
+            l = float(quote["low"][i])
+            c = float(quote["close"][i])
+            v = int(quote["volume"][i] or 0)
+            bar_ts = datetime.fromtimestamp(ts)
+
             bars.append(
-    OHLCVBar(
-        instrument=instrument,
-        timeframe=timeframe,
-        timestamp=datetime.fromtimestamp(ts),
-        open=float(quote["open"][i]),
-        high=float(quote["high"][i]),
-        low=float(quote["low"][i]),
-        close=float(quote["close"][i]),
-        volume=int(quote["volume"][i] or 0),
-        provider="yfinance",
-    )
-)
+                OHLCVBar(
+                    instrument=instrument,
+                    timeframe=timeframe,
+                    timestamp=bar_ts,
+                    open=o,
+                    high=h,
+                    low=l,
+                    close=c,
+                    volume=v,
+                    provider="yfinance",
+                    vwap=_compute_vwap(h, l, c, v),
+                    session=_infer_session(bar_ts),
+                )
+            )
 
         return bars
 
     async def is_available(self) -> bool:
         """yfinance is always available — no API key needed."""
         return True
+

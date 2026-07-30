@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 
@@ -24,6 +24,23 @@ def get_market_data_service(
     db: AsyncSession = Depends(get_db),
 ) -> MarketDataService:
     return MarketDataService(db)
+
+
+# ─── Common bar serialization ─────────────────────────────────
+
+def _serialize_bar(b) -> dict:
+    """Serialize a Bar ORM object to a dict for API response."""
+    return {
+        "timestamp": b.timestamp.isoformat(),
+        "open": b.open,
+        "high": b.high,
+        "low": b.low,
+        "close": b.close,
+        "volume": b.volume,
+        "vwap": b.vwap,
+        "session": b.session,
+        "provider": b.provider,
+    }
 
 
 # ─── Instruments ─────────────────────────────────────────────
@@ -57,10 +74,11 @@ async def get_bars(
     timeframe: str = Query(..., description=f"Timeframe: {', '.join(VALID_TIMEFRAMES)}"),
     start: Optional[str] = Query(None, description="Start datetime (ISO format)"),
     end: Optional[str] = Query(None, description="End datetime (ISO format)"),
+    session: Optional[str] = Query(None, description="Filter by session (RTH, ETH, Asian, London, full)"),
     limit: int = Query(5000, ge=1, le=100000),
     service: MarketDataService = Depends(get_market_data_service),
 ):
-    """Retrieve stored OHLCV bars."""
+    """Retrieve stored OHLCV bars with optional session filter."""
     if timeframe not in VALID_TIMEFRAMES:
         raise HTTPException(
             status_code=400,
@@ -70,30 +88,21 @@ async def get_bars(
     start_dt = datetime.fromisoformat(start) if start else None
     end_dt = datetime.fromisoformat(end) if end else None
 
-    bars = await service.get_bars(
+    bars = await service.query_bars(
         instrument=instrument.upper(),
         timeframe=timeframe,
         start=start_dt,
         end=end_dt,
+        session=session,
         limit=limit,
     )
 
     return {
         "instrument": instrument.upper(),
         "timeframe": timeframe,
+        "session": session,
         "count": len(bars),
-        "bars": [
-            {
-                "timestamp": b.timestamp.isoformat(),
-                "open": b.open,
-                "high": b.high,
-                "low": b.low,
-                "close": b.close,
-                "volume": b.volume,
-                "provider": b.provider,
-            }
-            for b in bars
-        ],
+        "bars": [_serialize_bar(b) for b in bars],
     }
 
 
@@ -106,6 +115,26 @@ async def get_bar_count(
     """Count stored bars for an instrument/timeframe."""
     count = await service.get_bar_count(instrument.upper(), timeframe)
     return {"instrument": instrument.upper(), "timeframe": timeframe, "count": count}
+
+
+@router.get("/bars/latest")
+async def get_latest_bar(
+    instrument: str = Query(..., description="Instrument symbol"),
+    timeframe: str = Query("1m", description="Timeframe"),
+    service: MarketDataService = Depends(get_market_data_service),
+):
+    """Get the most recent bar for an instrument/timeframe."""
+    bar = await service.get_latest_bar(instrument.upper(), timeframe)
+    if bar is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No bars found for {instrument.upper()} {timeframe}",
+        )
+    return {
+        "instrument": instrument.upper(),
+        "timeframe": timeframe,
+        "bar": _serialize_bar(bar),
+    }
 
 
 # ─── Timeframes ──────────────────────────────────────────────
@@ -153,6 +182,23 @@ async def fetch_and_ingest(
     except Exception as e:
         logger.error("ingest_fetch_error", error=str(e))
         raise HTTPException(status_code=500, detail=f"Ingestion failed: {e}")
+
+
+@router.post("/import")
+async def import_bars_json(
+    bars: list[dict] = Body(..., description="List of OHLCV bar objects"),
+    service: MarketDataService = Depends(get_market_data_service),
+):
+    """Import OHLCV bars from a JSON body.
+
+    Each bar dict should have: instrument, timeframe, timestamp, open, high,
+    low, close, volume, and optionally vwap, session, provider.
+    """
+    if not bars:
+        raise HTTPException(status_code=400, detail="No bars provided")
+
+    result = await service.import_bars(bars)
+    return result
 
 
 @router.post("/ingest/csv")
