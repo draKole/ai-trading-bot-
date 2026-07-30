@@ -35,6 +35,8 @@ class Bar(Base):
     low: Mapped[float] = mapped_column(Float, nullable=False)
     close: Mapped[float] = mapped_column(Float, nullable=False)
     volume: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    vwap: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    session: Mapped[str] = mapped_column(String(20), nullable=False, default="")
     provider: Mapped[str] = mapped_column(String(30), nullable=False)
     ingested_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow,
@@ -44,5 +46,6 @@ class Bar(Base):
         return (
             f"<Bar {self.instrument_id} {self.timeframe} "
             f"{self.timestamp:%Y-%m-%d %H:%M} O:{self.open} H:{self.high} "
-            f"L:{self.low} C:{self.close} V:{self.volume}>"
+            f"L:{self.low} C:{self.close} V:{self.volume} "
+            f"VWAP:{self.vwap} S:{self.session}>"
         )

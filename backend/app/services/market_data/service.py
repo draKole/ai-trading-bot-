@@ -116,6 +116,8 @@ class MarketDataService:
                 low=bar.low,
                 close=bar.close,
                 volume=bar.volume,
+                vwap=bar.vwap,
+                session=bar.session,
                 provider=bar.provider,
                 ingested_at=datetime.utcnow(),
             )
@@ -176,6 +178,8 @@ class MarketDataService:
             close=db_bar.close,
             volume=db_bar.volume,
             provider=db_bar.provider,
+            vwap=db_bar.vwap,
+            session=db_bar.session,
         )
 
     # ─── Data Retrieval ──────────────────────────────────────
@@ -291,3 +295,97 @@ class MarketDataService:
             {"inst_id": inst.id, "tf": timeframe},
         )
         return result.scalar() or 0
+
+    # ─── Sprint 2a: Extended Methods ─────────────────────────
+
+    async def import_bars(self, bars: list[dict]) -> dict:
+        """Bulk insert OHLCV bars from dict data."""
+        instrument_cache: dict[str, int] = {}
+        inserted = 0
+        skipped = 0
+
+        for bar_dict in bars:
+            symbol = bar_dict.get("instrument", "").upper()
+            if not symbol:
+                skipped += 1
+                continue
+
+            if symbol not in instrument_cache:
+                inst = await self.get_instrument_by_symbol(symbol)
+                if inst is None:
+                    logger.warning("unknown_instrument", instrument=symbol)
+                    skipped += 1
+                    continue
+                instrument_cache[symbol] = inst.id
+
+            db_bar = Bar(
+                instrument_id=instrument_cache[symbol],
+                timeframe=bar_dict.get("timeframe", "1m"),
+                timestamp=bar_dict.get("timestamp"),
+                open=bar_dict.get("open", 0.0),
+                high=bar_dict.get("high", 0.0),
+                low=bar_dict.get("low", 0.0),
+                close=bar_dict.get("close", 0.0),
+                volume=bar_dict.get("volume", 0),
+                vwap=bar_dict.get("vwap", 0.0),
+                session=bar_dict.get("session", ""),
+                provider=bar_dict.get("provider", "import"),
+                ingested_at=datetime.utcnow(),
+            )
+            self.session.add(db_bar)
+            inserted += 1
+
+        await self.session.flush()
+        return {"submitted": len(bars), "inserted": inserted, "skipped": skipped}
+
+    async def query_bars(
+        self,
+        instrument: str,
+        timeframe: str,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        session: str | None = None,
+        limit: int = 5000,
+    ) -> list[Bar]:
+        """Query historical bars with optional session filter."""
+        inst = await self.get_instrument_by_symbol(instrument)
+        if inst is None:
+            return []
+
+        conditions = [
+            Bar.instrument_id == inst.id,
+            Bar.timeframe == timeframe,
+        ]
+        if start:
+            conditions.append(Bar.timestamp >= start)
+        if end:
+            conditions.append(Bar.timestamp <= end)
+        if session:
+            conditions.append(Bar.session == session)
+
+        result = await self.session.execute(
+            select(Bar)
+            .where(*conditions)
+            .order_by(Bar.timestamp.asc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def get_latest_bar(
+        self, instrument: str, timeframe: str,
+    ) -> Bar | None:
+        """Get the most recent bar for an instrument/timeframe."""
+        inst = await self.get_instrument_by_symbol(instrument)
+        if inst is None:
+            return None
+
+        result = await self.session.execute(
+            select(Bar)
+            .where(
+                Bar.instrument_id == inst.id,
+                Bar.timeframe == timeframe,
+            )
+            .order_by(Bar.timestamp.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()

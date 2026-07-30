@@ -20,6 +20,8 @@ class OHLCVBar:
     close: float
     volume: int
     provider: str
+    vwap: float = 0.0
+    session: str = ""
 
     def validate(self) -> list[str]:
         """Return list of validation error messages. Empty = valid."""
@@ -38,7 +40,14 @@ class OHLCVBar:
             errors.append(f"close ({self.close}) outside [{self.low}, {self.high}]")
         if self.volume < 0:
             errors.append(f"negative volume: {self.volume}")
+        if self.vwap < 0:
+            errors.append(f"negative VWAP: {self.vwap}")
         return errors
+
+    @property
+    def typical_price(self) -> float:
+        """(H + L + C) / 3 — used as VWAP approximation."""
+        return round((self.high + self.low + self.close) / 3.0, 6)
 
     def is_valid(self) -> bool:
         return len(self.validate()) == 0
