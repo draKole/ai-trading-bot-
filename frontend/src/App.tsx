@@ -11,6 +11,7 @@ import Charts from './pages/Charts'
 import DataImport from './pages/DataImport'
 import Instruments from './pages/Instruments'
 import Backtesting from './pages/Backtesting'
+import PaperTrading from './pages/PaperTrading'
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
         <Route path="/data-import" element={<DataImport />} />
         <Route path="/instruments" element={<Instruments />} />
         <Route path="/backtesting" element={<Backtesting />} />
+        <Route path="/paper-trading" element={<PaperTrading />} />
       </Route>
     </Routes>
   )
