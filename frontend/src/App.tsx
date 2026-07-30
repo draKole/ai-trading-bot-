@@ -7,6 +7,9 @@ import Signals from './pages/Signals'
 import Analytics from './pages/Analytics'
 import RiskCenter from './pages/RiskCenter'
 import Settings from './pages/Settings'
+import Charts from './pages/Charts'
+import DataImport from './pages/DataImport'
+import Instruments from './pages/Instruments'
 
 export default function App() {
   return (
@@ -19,6 +22,9 @@ export default function App() {
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/risk" element={<RiskCenter />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/charts" element={<Charts />} />
+        <Route path="/data-import" element={<DataImport />} />
+        <Route path="/instruments" element={<Instruments />} />
       </Route>
     </Routes>
   )
