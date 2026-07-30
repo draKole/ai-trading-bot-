@@ -34,6 +34,9 @@ from app.api import (
     optimization,
     scanner,
     copilot,
+    mode,
+    audit,
+    risk_controls,
 )
 
 api_router = APIRouter()
@@ -69,3 +72,6 @@ api_router.include_router(portfolio.router, prefix="/portfolio", tags=["Portfoli
 api_router.include_router(optimization.router, prefix="/optimization", tags=["Optimization"])
 api_router.include_router(scanner.router, prefix="/scanner", tags=["Scanner"])
 api_router.include_router(copilot.router, prefix="/copilot", tags=["Copilot"])
+api_router.include_router(mode.router, tags=["Trading Mode"])
+api_router.include_router(risk_controls.router, tags=["Risk Controls"])
+api_router.include_router(audit.router, tags=["Audit Log"])
