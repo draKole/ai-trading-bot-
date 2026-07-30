@@ -10,6 +10,7 @@ import Settings from './pages/Settings'
 import Charts from './pages/Charts'
 import DataImport from './pages/DataImport'
 import Instruments from './pages/Instruments'
+import Backtesting from './pages/Backtesting'
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/charts" element={<Charts />} />
         <Route path="/data-import" element={<DataImport />} />
         <Route path="/instruments" element={<Instruments />} />
+        <Route path="/backtesting" element={<Backtesting />} />
       </Route>
     </Routes>
   )
