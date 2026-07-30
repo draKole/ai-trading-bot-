@@ -6,6 +6,7 @@ const navItems = [
   { path: '/charts', label: 'Charts', icon: '📈' },
   { path: '/instruments', label: 'Instruments', icon: '📋' },
   { path: '/data-import', label: 'Data Import', icon: '📥' },
+  { path: '/backtesting', label: 'Backtesting', icon: '🧪' },
   { path: '/monitor', label: 'Live Monitor', icon: '📡' },
   { path: '/signals', label: 'Signals', icon: '⚡' },
   { path: '/accounts', label: 'Accounts', icon: '💼' },
@@ -36,7 +37,7 @@ export default function Layout() {
       <aside className="w-56 bg-slate-900 border-r border-slate-800 flex flex-col">
         <div className="p-4 border-b border-slate-800">
           <h1 className="text-lg font-bold text-green-500">Drake AI Trading</h1>
-          <span className="text-xs text-slate-500">Sprint 2 — Historical Data</span>
+          <span className="text-xs text-slate-500">Sprint 3 — Backtesting</span>
         </div>
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
           {navItems.map((item) => (

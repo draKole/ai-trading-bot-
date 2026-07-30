@@ -52,8 +52,11 @@ async def run_backtest(
     timeframe: str = Query("5m"),
     start_time: str = Query(...),
     end_time: str = Query(...),
+    strategy: str = Query("trend_following"),
     bars_json: str = Query(..., description="JSON array of OHLCV bars"),
     initial_balance: float = Query(100_000.0),
+    commission: float = Query(2.50),
+    slippage: int = Query(1),
     db: AsyncSession = Depends(get_db),
 ):
     """Run a backtest and persist results."""
@@ -67,7 +70,10 @@ async def run_backtest(
         timeframe=timeframe,
         start_time=st,
         end_time=et,
+        strategy=strategy,
         initial_balance=initial_balance,
+        commission_per_contract=commission,
+        slippage_ticks=slippage,
     )
 
     # Create run record
@@ -117,8 +123,11 @@ async def run_dry_backtest(
     timeframe: str = Query("5m"),
     start_time: str = Query("2025-06-16T09:30:00"),
     end_time: str = Query("2025-06-16T16:00:00"),
+    strategy: str = Query("trend_following"),
     bars_json: str = Query(..., description="JSON array of OHLCV bars"),
     initial_balance: float = Query(100_000.0),
+    commission: float = Query(2.50),
+    slippage: int = Query(1),
 ):
     """Run a backtest without persistence (dry-run)."""
     st = datetime.fromisoformat(start_time)
@@ -129,7 +138,10 @@ async def run_dry_backtest(
         timeframe=timeframe,
         start_time=st,
         end_time=et,
+        strategy=strategy,
         initial_balance=initial_balance,
+        commission_per_contract=commission,
+        slippage_ticks=slippage,
     )
 
     bar_dicts = json.loads(bars_json)
