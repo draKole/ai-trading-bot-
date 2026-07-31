@@ -1,31 +1,34 @@
-"""CSV Data Provider — imports OHLCV data from CSV files."""
+"""CSV Data Provider — validates and imports OHLCV data from CSV files."""
 
 from __future__ import annotations
 
 import csv
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
 from app.services.market_data.provider import DataProvider, OHLCVBar
 
 
+@dataclass
+class CSVParseResult:
+    """Successful bars and row-level parse/validation failures from a CSV."""
+
+    bars: list[OHLCVBar]
+    errors: list[dict]
+
+
 class CSVProvider(DataProvider):
-    """Import OHLCV bars from CSV files.
+    """Import OHLCV data from CSV files with a header row.
 
-    Expected CSV columns (header row required):
-        timestamp, open, high, low, close, volume
-
-    Optional columns:
-        instrument, timeframe (if not provided, use constructor defaults)
+    Required columns are ``timestamp, open, high, low, close, volume``.
+    ``instrument`` and ``timeframe`` may be supplied per row or inherited from
+    the request defaults.
     """
 
     name = "csv"
 
-    def __init__(
-        self,
-        default_instrument: str = "",
-        default_timeframe: str = "1d",
-    ):
+    def __init__(self, default_instrument: str = "", default_timeframe: str = "1d"):
         self.default_instrument = default_instrument
         self.default_timeframe = default_timeframe
 
@@ -36,61 +39,54 @@ class CSVProvider(DataProvider):
         start: datetime | None = None,
         end: datetime | None = None,
     ) -> list[OHLCVBar]:
-        """CSV provider returns empty — use fetch_from_file instead."""
+        """CSV is file-backed; use :meth:`load_file_with_report`."""
         return []
 
     async def is_available(self) -> bool:
         return True
 
-    def load_file(self, filepath: str | Path) -> list[OHLCVBar]:
-        """Load and parse a CSV file into OHLCVBar objects."""
+    def load_file_with_report(self, filepath: str | Path) -> CSVParseResult:
+        """Parse CSV rows into canonical bars and retain row-level errors."""
         bars: list[OHLCVBar] = []
         errors: list[dict] = []
-
-        with open(filepath, newline="") as f:
-            reader = csv.DictReader(f)
-
-            # Validate required columns
+        with open(filepath, newline="", encoding="utf-8-sig") as file_handle:
+            reader = csv.DictReader(file_handle)
             required = {"timestamp", "open", "high", "low", "close", "volume"}
-            if not required.issubset(set(reader.fieldnames or [])):
-                missing = required - set(reader.fieldnames or [])
+            fieldnames = set(reader.fieldnames or [])
+            if not required.issubset(fieldnames):
+                missing = sorted(required - fieldnames)
                 raise ValueError(
-                    f"CSV missing required columns: {missing}. "
+                    f"CSV missing required columns: {', '.join(missing)}. "
                     f"Found: {reader.fieldnames}"
                 )
 
-            for row_num, row in enumerate(reader, start=2):
+            for row_number, row in enumerate(reader, start=2):
                 try:
-                    bar = OHLCVBar(
-                        instrument=row.get("instrument", self.default_instrument),
-                        timeframe=row.get("timeframe", self.default_timeframe),
-                        timestamp=datetime.fromisoformat(row["timestamp"].strip()),
-                        open=float(row["open"]),
-                        high=float(row["high"]),
-                        low=float(row["low"]),
-                        close=float(row["close"]),
-                        volume=int(float(row["volume"])),
-                        provider="csv",
-                    )
+                    bar = OHLCVBar.from_dict({
+                        "instrument": row.get("instrument") or self.default_instrument,
+                        "timeframe": row.get("timeframe") or self.default_timeframe,
+                        "timestamp": row.get("timestamp"),
+                        "open": row.get("open"),
+                        "high": row.get("high"),
+                        "low": row.get("low"),
+                        "close": row.get("close"),
+                        "volume": row.get("volume"),
+                        "vwap": row.get("vwap"),
+                        "session": row.get("session"),
+                        "provider": self.name,
+                    }, default_provider=self.name)
                     validation_errors = bar.validate()
                     if validation_errors:
-                        errors.append({
-                            "row": row_num,
-                            "timestamp": row.get("timestamp", "?"),
-                            "errors": validation_errors,
-                        })
-                    else:
-                        bars.append(bar)
-                except (ValueError, KeyError) as e:
+                        raise ValueError("; ".join(validation_errors))
+                    bars.append(bar)
+                except (TypeError, ValueError) as exc:
                     errors.append({
-                        "row": row_num,
+                        "row": row_number,
                         "timestamp": row.get("timestamp", "?"),
-                        "errors": [str(e)],
+                        "errors": [str(exc)],
                     })
+        return CSVParseResult(bars=bars, errors=errors)
 
-        if errors:
-            import structlog
-            logger = structlog.get_logger()
-            logger.warning("csv_import_errors", count=len(errors), errors=errors[:10])
-
-        return bars
+    def load_file(self, filepath: str | Path) -> list[OHLCVBar]:
+        """Compatibility wrapper returning only valid canonical bars."""
+        return self.load_file_with_report(filepath).bars
