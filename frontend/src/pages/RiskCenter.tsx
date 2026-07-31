@@ -65,8 +65,11 @@ function KillSwitchPanel({
   );
 }
 
-function CircuitBreakerCard({ cb }: { cb: RiskControlsState["circuit_breaker"] }) {
-  const triggered = cb.triggered;
+function CircuitBreakerCard({ cb }: { cb: RiskControlsState["circuit_breaker"] | null | undefined }) {
+  const triggered = cb?.triggered ?? false;
+  const consecutiveLosses = cb?.consecutive_losses ?? 0;
+  const maxConsecutive = cb?.max_consecutive ?? 0;
+  const windowSeconds = cb?.window_seconds ?? 0;
   return (
     <div className={`rounded-lg border p-4 ${statusBg(triggered)}`}>
       <div className="flex items-center gap-2 mb-2">
@@ -77,12 +80,12 @@ function CircuitBreakerCard({ cb }: { cb: RiskControlsState["circuit_breaker"] }
         <div className="flex justify-between">
           <span className="text-slate-400">Consecutive Losses</span>
           <span className={`font-mono font-bold ${statusColor(triggered)}`}>
-            {cb.consecutive_losses} / {cb.max_consecutive}
+            {consecutiveLosses} / {maxConsecutive}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-slate-400">Window</span>
-          <span className="font-mono text-slate-300">{cb.window_seconds}s</span>
+          <span className="font-mono text-slate-300">{windowSeconds}s</span>
         </div>
         <div className="flex justify-between">
           <span className="text-slate-400">Status</span>
@@ -95,9 +98,11 @@ function CircuitBreakerCard({ cb }: { cb: RiskControlsState["circuit_breaker"] }
   );
 }
 
-function DailyLossCard({ dl }: { dl: RiskControlsState["daily_loss"] }) {
-  const exceeded = dl.exceeded;
-  const pct = dl.limit > 0 ? Math.min((dl.current_loss / dl.limit) * 100, 100) : 0;
+function DailyLossCard({ dl }: { dl: RiskControlsState["daily_loss"] | null | undefined }) {
+  const exceeded = dl?.exceeded ?? false;
+  const currentLoss = dl?.current_loss ?? 0;
+  const limit = dl?.limit ?? 0;
+  const pct = limit > 0 ? Math.min((currentLoss / limit) * 100, 100) : 0;
   return (
     <div className={`rounded-lg border p-4 ${statusBg(exceeded)}`}>
       <div className="flex items-center gap-2 mb-2">
@@ -108,13 +113,13 @@ function DailyLossCard({ dl }: { dl: RiskControlsState["daily_loss"] }) {
         <div className="flex justify-between">
           <span className="text-slate-400">Current Loss</span>
           <span className={`font-mono font-bold ${statusColor(exceeded)}`}>
-            ${dl.current_loss.toLocaleString()}
+            ${currentLoss.toLocaleString()}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-slate-400">Limit</span>
           <span className="font-mono text-slate-300">
-            ${dl.limit.toLocaleString()}
+            ${limit.toLocaleString()}
           </span>
         </div>
         {/* Progress bar */}
@@ -138,17 +143,19 @@ function PositionLimitsCard({
   limits,
   current,
 }: {
-  limits: Record<string, number>;
-  current: Record<string, number>;
+  limits: Record<string, number> | null | undefined;
+  current: Record<string, number> | null | undefined;
 }) {
+  const safeLimits = limits ?? {};
+  const safeCurrent = current ?? {};
   const instruments = ["ES", "NQ", "MNQ"];
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-900 p-4">
       <h4 className="text-sm font-semibold text-slate-200 mb-3">Max Position Limits</h4>
       <div className="space-y-2">
         {instruments.map((inst) => {
-          const limit = limits[inst] ?? 0;
-          const cur = current[inst] ?? 0;
+          const limit = safeLimits[inst] ?? 0;
+          const cur = safeCurrent[inst] ?? 0;
           const atLimit = limit > 0 && cur >= limit;
           return (
             <div key={inst} className="flex items-center justify-between text-sm">
@@ -397,16 +404,15 @@ export default function RiskCenter() {
       <ConfigPanel onConfigUpdate={handleConfigUpdate} loading={actionLoading} />
 
       {/* Enabled toggles summary */}
-      {data && (
-        <div className="rounded-lg border border-slate-700 bg-slate-900 p-4">
-          <h4 className="text-sm font-semibold text-slate-200 mb-2">Enabled Controls</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-            {[
-              { label: "Kill Switch", val: data.kill_switch_enabled },
-              { label: "Circuit Breaker", val: data.circuit_breaker_enabled },
-              { label: "Daily Loss Limit", val: data.daily_loss_limit_enabled },
-              { label: "Max Position", val: data.max_position_enabled },
-            ].map(({ label, val }) => (
+      <div className="rounded-lg border border-slate-700 bg-slate-900 p-4">
+        <h4 className="text-sm font-semibold text-slate-200 mb-2">Enabled Controls</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          {[
+            { label: "Kill Switch", val: data?.kill_switch_enabled ?? false },
+            { label: "Circuit Breaker", val: data?.circuit_breaker_enabled ?? false },
+            { label: "Daily Loss Limit", val: data?.daily_loss_limit_enabled ?? false },
+            { label: "Max Position", val: data?.max_position_enabled ?? false },
+          ].map(({ label, val }) => (
               <div key={label} className="flex items-center gap-2">
                 <span
                   className={`inline-block h-2 w-2 rounded-full ${val ? "bg-emerald-500" : "bg-slate-600"}`}
@@ -418,7 +424,6 @@ export default function RiskCenter() {
             ))}
           </div>
         </div>
-      )}
     </div>
   );
 }
