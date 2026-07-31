@@ -10,6 +10,12 @@ FROM python:3.12-slim AS production
 LABEL org.drake.trading.version="1.0.0"
 LABEL org.drake.trading.component="backend"
 
+# System dependencies for psycopg2, pg_isready (health checks), and entrypoint
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
 # Non-root user
 RUN groupadd -r drake && useradd -r -g drake -s /bin/false drake
 
@@ -19,11 +25,10 @@ WORKDIR /app/backend
 COPY --from=builder /root/.local /home/drake/.local
 ENV PATH=/home/drake/.local/bin:$PATH
 
-# Copy application
+# Copy application and entrypoint
 COPY backend/ .
-COPY Dockerfile /app/Dockerfile
-COPY .dockerignore /app/.dockerignore
-COPY docker-compose.yml /app/docker-compose.yml
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Create directories
 RUN mkdir -p /var/log/drake /var/lib/drake/data && \
@@ -31,9 +36,11 @@ RUN mkdir -p /var/log/drake /var/lib/drake/data && \
 
 USER drake
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+# Health check — uses the simple /health liveness endpoint (no DB dependency)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+
+# Use entrypoint for migration + startup sequencing
+ENTRYPOINT ["/docker-entrypoint.sh"]
