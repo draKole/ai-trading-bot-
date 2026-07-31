@@ -12,6 +12,7 @@ import {
   type PaperPosition,
   type PaperTrade,
 } from "../api/paper-trading";
+import { NoticeBanner, RefreshButton, StatusPill, TerminalPageHeader, TerminalState } from "../components/TerminalUI";
 
 /* ─── Constants ─────────────────────────────────────── */
 
@@ -52,6 +53,7 @@ export default function PaperTrading() {
   const [positions, setPositions] = useState<PaperPosition[]>([]);
   const [orders, setOrders] = useState<PaperOrder[]>([]);
   const [trades, setTrades] = useState<PaperTrade[]>([]);
+  const [sessionLoading, setSessionLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,6 +75,8 @@ export default function PaperTrading() {
         setSessionId(sess.session_id);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to start session");
+      } finally {
+        setSessionLoading(false);
       }
     }
     init();
@@ -150,35 +154,30 @@ export default function PaperTrading() {
   const filledOrders = orders.filter((o) => o.status === "filled");
   const openPositions = positions.filter((p) => p.status === "open");
 
+  if (sessionLoading) {
+    return <TerminalState kind="loading" title="Opening paper session" detail="Preparing an isolated simulated execution workspace." />;
+  }
+
+  if (!sessionId && error) {
+    return <TerminalState kind="error" title="Paper session unavailable" detail={error} onRetry={() => window.location.reload()} />;
+  }
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-100">Paper Trading</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Simulated trading with real order execution logic.
-          </p>
-        </div>
-        {account && (
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-block h-2.5 w-2.5 rounded-full ${
-                account.status === "running" ? "bg-emerald-500" : "bg-slate-500"
-              }`}
-            />
-            <span className="text-sm text-slate-400">
-              {account.status?.toUpperCase()}
-            </span>
-          </div>
-        )}
-      </div>
+    <div className="space-y-6">
+      <TerminalPageHeader
+        eyebrow="Simulated execution"
+        title="Paper Trading"
+        description="Simulated trading with real order execution logic. No broker orders are sent."
+        actions={
+          <>
+            {account && <StatusPill tone={account.status === "running" ? "success" : "neutral"}>{account.status}</StatusPill>}
+            <RefreshButton loading={loading} onClick={() => refresh()} />
+          </>
+        }
+      />
 
       {/* ─── Error ─────────────────────────────── */}
-      {error && (
-        <div className="bg-red-900/30 border border-red-800 rounded-lg p-3">
-          <p className="text-red-400 text-sm">{error}</p>
-        </div>
-      )}
+      {error && <NoticeBanner tone="error">{error}</NoticeBanner>}
 
       {/* ─── Account Summary ───────────────────── */}
       {account && (
@@ -330,9 +329,7 @@ export default function PaperTrading() {
           Positions ({openPositions.length})
         </h3>
         {openPositions.length === 0 ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 text-center text-slate-500 text-sm">
-            No open positions
-          </div>
+          <TerminalState kind="empty" compact title="No open positions" detail="Positions will appear here after simulated orders fill." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -396,9 +393,7 @@ export default function PaperTrading() {
           Open Orders ({openOrders.length})
         </h3>
         {openOrders.length === 0 ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 text-center text-slate-500 text-sm">
-            No open orders
-          </div>
+          <TerminalState kind="empty" compact title="No open orders" detail="Working limit and stop orders will appear here." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -466,9 +461,7 @@ export default function PaperTrading() {
           Recent Trades ({trades.length})
         </h3>
         {trades.length === 0 ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 text-center text-slate-500 text-sm">
-            No trades yet
-          </div>
+          <TerminalState kind="empty" compact title="No trades yet" detail="Filled paper trades will be recorded in this session." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
