@@ -32,13 +32,23 @@ async def version_info():
 
 @router.get("/deployment/readiness")
 async def readiness():
-    """Readiness check — all critical dependencies."""
+    """Readiness check — probes critical dependencies (database, redis).
+
+    Returns 200 with ready=true only when all critical dependencies are
+    healthy. Container orchestrators can use this for rolling deployments
+    and to delay traffic until the instance is fully operational.
+    """
+    from app.core.database import check_db_connection
+    from app.core.redis import check_redis_connection
+
+    db_ok = await check_db_connection()
+    redis_ok = await check_redis_connection()
+
     checks = {
         "api": True,
-        "database": True,
-        "redis": True,
-        "migrations": True,
-        "monitoring": True,
+        "database": db_ok,
+        "redis": redis_ok,
+        "migrations_applied": True,  # verified at startup by entrypoint
     }
     return {
         "ready": all(checks.values()),

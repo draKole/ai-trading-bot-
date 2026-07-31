@@ -15,19 +15,33 @@ from app.api.router import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup/shutdown lifecycle handler."""
-    # Startup
+    """Startup/shutdown lifecycle handler.
+
+    On startup:
+        - Verify database connectivity
+        - Verify Redis connectivity
+        - Log the active trading mode
+        - Reject unsafe LIVE mode without explicit confirmation
+    On shutdown:
+        - Close Redis connection gracefully
+    """
+    # ── Startup ────────────────────────────────────────────────
     db_ok = await check_db_connection()
     redis_ok = await check_redis_connection()
-    if not db_ok:
-        print("WARNING: Database connection failed on startup")
-    if not redis_ok:
-        print("WARNING: Redis connection failed on startup")
-    print(f"Drake AI Trading started in {settings.TRADING_MODE} mode")
+
+    status = []
+    status.append(f"database={'ok' if db_ok else 'FAILED'}")
+    status.append(f"redis={'ok' if redis_ok else 'FAILED'}")
+    print(f"Drake AI Trading started in {settings.TRADING_MODE} mode ({', '.join(status)})")
+
     if settings.TRADING_MODE == "LIVE" and not settings.LIVE_ALLOWED:
-        raise RuntimeError("LIVE mode is not allowed — set LIVE_ALLOWED=true")
+        raise RuntimeError(
+            "LIVE mode is not allowed — set LIVE_ALLOWED=true in the environment"
+        )
+
     yield
-    # Shutdown
+
+    # ── Shutdown ───────────────────────────────────────────────
     await close_redis()
 
 
@@ -49,18 +63,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routes
+# Routes — all API endpoints are versioned under /api/v1
 app.include_router(api_router, prefix="/api/v1")
 
 
 @app.get("/health")
 async def health_check():
-    """Basic health check endpoint."""
-    db_ok = await check_db_connection()
-    redis_ok = await check_redis_connection()
-    return {
-        "status": "ok" if (db_ok and redis_ok) else "degraded",
-        "mode": settings.TRADING_MODE,
-        "database": "connected" if db_ok else "disconnected",
-        "redis": "connected" if redis_ok else "disconnected",
-    }
+    """Liveness check — always returns 200 if the API process is alive.
+
+    This endpoint is intentionally minimal (no DB/Redis probe) so that
+    Docker HEALTHCHECK and container orchestrators can distinguish
+    "process is running" from "dependencies are unhealthy."
+
+    For a comprehensive dependency-level check, use GET /api/v1/health/full.
+    """
+    return {"status": "ok"}

@@ -129,7 +129,7 @@ def test_confluence_config_threshold():
 
 @pytest.mark.asyncio
 async def test_health_endpoint():
-    """Verify the health endpoint responds."""
+    """Verify the liveness health endpoint responds (minimal, no DB dependency)."""
     from httpx import ASGITransport, AsyncClient
     from app.main import app
 
@@ -138,6 +138,4 @@ async def test_health_endpoint():
         response = await client.get("/health")
         assert response.status_code == 200
         data = response.json()
-        assert "status" in data
-        assert "mode" in data
-        assert data["mode"] == "PAPER"
+        assert data == {"status": "ok"}
