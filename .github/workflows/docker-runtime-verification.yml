@@ -1,0 +1,49 @@
+name: Docker Runtime Verification
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "docker-entrypoint.sh"
+      - "backend/**"
+      - "scripts/verify_docker_runtime.sh"
+      - ".github/workflows/docker-runtime-verification.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  compose-runtime-proof:
+    name: Clean Compose runtime proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run clean Compose verification
+        id: verification
+        continue-on-error: true
+        env:
+          RUNTIME_EVIDENCE_DIR: runtime-evidence
+        run: bash scripts/verify_docker_runtime.sh
+
+      - name: Upload runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-runtime-evidence
+          path: runtime-evidence
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Fail the gate when verification fails
+        if: steps.verification.outcome != 'success'
+        run: |
+          echo "Docker runtime verification failed. Inspect the docker-runtime-evidence artifact."
+          exit 1
+
+      - name: Remove Compose resources
+        if: always()
+        run: docker compose down --remove-orphans --volumes || true
