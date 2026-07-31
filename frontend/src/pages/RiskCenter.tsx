@@ -5,6 +5,7 @@ import {
   updateRiskConfig,
   type RiskControlsState,
 } from "../api/live-trading";
+import { NoticeBanner, RefreshButton, TerminalPageHeader, TerminalState } from "../components/TerminalUI";
 
 /* ─── Helpers ─────────────────────────────────────────── */
 
@@ -329,52 +330,24 @@ export default function RiskCenter() {
   }
 
   if (loading && !data) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <span className="text-sm text-slate-400">Loading risk controls…</span>
-      </div>
-    );
+    return <TerminalState kind="loading" title="Loading risk controls" detail="Retrieving execution guardrails and account limits." />;
   }
 
   if (error && !data) {
-    return (
-      <div className="p-6">
-        <div className="rounded border border-red-700 bg-red-950 p-6 text-center">
-          <div className="text-lg font-semibold text-red-300">Connection Error</div>
-          <div className="mt-1 text-sm text-red-400">{error}</div>
-          <button
-            onClick={() => { setLoading(true); refresh(); }}
-            className="mt-4 rounded bg-red-800 px-4 py-2 text-sm text-red-100 hover:bg-red-700"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
+    return <TerminalState kind="error" title="Risk controls unavailable" detail={error} onRetry={() => { setLoading(true); refresh(); }} />;
   }
 
   return (
-    <div className="space-y-5 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-100">Risk Center</h2>
-          <p className="text-sm text-slate-400">
-            Execution kill switch, circuit breaker, daily loss limit, position limits
-          </p>
-        </div>
-        <button
-          onClick={() => { setLoading(true); refresh().finally(() => setLoading(false)); }}
-          disabled={loading}
-          className="rounded bg-slate-700 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-600 disabled:opacity-50"
-        >
-          {loading ? "Refreshing…" : "Refresh"}
-        </button>
-      </div>
+    <div className="space-y-5">
+      <TerminalPageHeader
+        eyebrow="Risk operations"
+        title="Risk Center"
+        description="Execution kill switch, circuit breaker, daily loss limit, and position limits."
+        actions={<RefreshButton loading={loading} onClick={() => { setLoading(true); refresh().finally(() => setLoading(false)); }} />}
+      />
 
       {error && data && (
-        <div className="rounded border border-amber-700 bg-amber-950 px-4 py-2 text-sm text-amber-300">
-          Last refresh failed: {error} — showing cached data
-        </div>
+        <NoticeBanner>Last refresh failed: {error} — showing cached data.</NoticeBanner>
       )}
 
       {/* Kill Switch */}

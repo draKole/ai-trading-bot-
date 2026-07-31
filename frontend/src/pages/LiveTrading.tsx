@@ -8,6 +8,7 @@ import {
   type ModeState,
   type RiskControlsState,
 } from "../api/live-trading";
+import { NoticeBanner, RefreshButton, TerminalPageHeader, TerminalState } from "../components/TerminalUI";
 
 /* ─── ModePanel ───────────────────────────────────────── */
 
@@ -382,29 +383,24 @@ export default function LiveTrading() {
     }
   }
 
-  return (
-    <div className="space-y-5 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-100">Live Trading</h2>
-          <p className="text-sm text-slate-400">
-            Config-driven PAPER/LIVE mode switching with safety controls
-          </p>
-        </div>
-        <button
-          onClick={() => { setLoading(true); fetchMode().finally(() => setLoading(false)); }}
-          disabled={loading}
-          className="rounded bg-slate-700 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-600 disabled:opacity-50"
-        >
-          {loading ? "Refreshing…" : "Refresh"}
-        </button>
-      </div>
+  if (loading && !mode) {
+    return <TerminalState kind="loading" title="Loading execution controls" detail="Verifying the current trading mode and safety status." />;
+  }
 
-      {error && (
-        <div className="rounded border border-red-700 bg-red-950 px-4 py-2 text-sm text-red-400">
-          {error}
-        </div>
-      )}
+  if (error && !mode) {
+    return <TerminalState kind="error" title="Execution controls unavailable" detail={error} onRetry={() => { setLoading(true); fetchMode(); }} />;
+  }
+
+  return (
+    <div className="space-y-5">
+      <TerminalPageHeader
+        eyebrow="Execution controls"
+        title="Live Trading"
+        description="Config-driven PAPER/LIVE mode switching with enforced safety controls."
+        actions={<RefreshButton loading={loading} onClick={() => { setLoading(true); fetchMode().finally(() => setLoading(false)); }} />}
+      />
+
+      {error && <NoticeBanner tone="error">{error}</NoticeBanner>}
 
       {/* Mode Panel */}
       <ModePanel

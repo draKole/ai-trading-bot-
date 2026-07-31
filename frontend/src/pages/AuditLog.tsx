@@ -4,6 +4,7 @@ import {
   type AuditLogEntry,
   type AuditLogResponse,
 } from "../api/live-trading";
+import { NoticeBanner, RefreshButton, TerminalPageHeader, TerminalState } from "../components/TerminalUI";
 
 /* ─── Helpers ─────────────────────────────────────────── */
 
@@ -192,23 +193,22 @@ export default function AuditLog() {
   const totalPages = data ? Math.ceil(data.total / pageSize) : 0;
   const entries = data?.entries ?? [];
 
+  if (loading && !data) {
+    return <TerminalState kind="loading" title="Loading audit history" detail="Retrieving immutable execution and risk events." />;
+  }
+
+  if (error && !data) {
+    return <TerminalState kind="error" title="Audit history unavailable" detail={error} onRetry={() => { setLoading(true); fetchLogs(); }} />;
+  }
+
   return (
-    <div className="space-y-4 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-100">Audit Log</h2>
-          <p className="text-sm text-slate-400">
-            Immutable event history — {data?.total ?? "..."} entries
-          </p>
-        </div>
-        <button
-          onClick={() => { setLoading(true); fetchLogs().finally(() => setLoading(false)); }}
-          disabled={loading}
-          className="rounded bg-slate-700 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-600 disabled:opacity-50"
-        >
-          {loading ? "Refreshing…" : "Refresh"}
-        </button>
-      </div>
+    <div className="space-y-4">
+      <TerminalPageHeader
+        eyebrow="Compliance & oversight"
+        title="Audit Log"
+        description={`Immutable event history — ${data?.total ?? 0} entries`}
+        actions={<RefreshButton loading={loading} onClick={() => { setLoading(true); fetchLogs().finally(() => setLoading(false)); }} />}
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
@@ -249,28 +249,11 @@ export default function AuditLog() {
       </div>
 
       {/* Error */}
-      {error && (
-        <div className="rounded border border-red-700 bg-red-950 px-4 py-2 text-sm text-red-400">
-          {error}
-        </div>
-      )}
-
-      {/* Loading */}
-      {loading && !data && (
-        <div className="flex h-48 items-center justify-center">
-          <span className="text-sm text-slate-400">Loading audit logs…</span>
-        </div>
-      )}
+      {error && <NoticeBanner tone="error">Last refresh failed: {error}. Showing the last successfully loaded event history.</NoticeBanner>}
 
       {/* Entries */}
       {!loading && entries.length === 0 && (
-        <div className="rounded-lg border border-slate-700 bg-slate-900 p-12 text-center">
-          <div className="text-4xl mb-3">📜</div>
-          <p className="text-slate-400 text-lg">No audit log entries found</p>
-          <p className="text-sm text-slate-500 mt-1">
-            Events will appear here as trading activity occurs
-          </p>
-        </div>
+        <TerminalState kind="empty" title="No audit log entries found" detail="Events will appear here as trading activity occurs." />
       )}
 
       <div className="space-y-2">
