@@ -1,9 +1,12 @@
 """Data Provider abstraction and registry."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from datetime import datetime
-from enum import Enum
+from dataclasses import dataclass
+from datetime import datetime, timezone
+import math
+from typing import Any
 
 
 # ─── Canonical Data Model ────────────────────────────────────
@@ -11,6 +14,7 @@ from enum import Enum
 @dataclass
 class OHLCVBar:
     """Canonical OHLCV bar — all providers normalize into this."""
+
     instrument: str
     timeframe: str
     timestamp: datetime
@@ -23,25 +27,88 @@ class OHLCVBar:
     vwap: float = 0.0
     session: str = ""
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any], *, default_provider: str = "import") -> "OHLCVBar":
+        """Parse an external JSON bar into the canonical representation.
+
+        This is deliberately strict about required fields and coercion so an
+        import cannot persist malformed JSON or a string timestamp directly to
+        the database.  Naive timestamps are treated as UTC for backward
+        compatibility with older CSV exports.
+        """
+        required = ("instrument", "timeframe", "timestamp", "open", "high", "low", "close", "volume")
+        missing = [field for field in required if data.get(field) in (None, "")]
+        if missing:
+            raise ValueError(f"missing required field(s): {', '.join(missing)}")
+
+        raw_timestamp = data["timestamp"]
+        if isinstance(raw_timestamp, datetime):
+            timestamp = raw_timestamp
+        elif isinstance(raw_timestamp, str):
+            timestamp = datetime.fromisoformat(raw_timestamp.replace("Z", "+00:00"))
+        else:
+            raise ValueError("timestamp must be an ISO-8601 datetime string")
+
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        else:
+            timestamp = timestamp.astimezone(timezone.utc)
+
+        try:
+            volume = int(float(data["volume"]))
+            return cls(
+                instrument=str(data["instrument"]).strip().upper(),
+                timeframe=str(data["timeframe"]).strip(),
+                timestamp=timestamp,
+                open=float(data["open"]),
+                high=float(data["high"]),
+                low=float(data["low"]),
+                close=float(data["close"]),
+                volume=volume,
+                provider=str(data.get("provider") or default_provider).strip(),
+                vwap=float(data.get("vwap") or 0.0),
+                session=str(data.get("session") or "").strip().upper(),
+            )
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"invalid numeric field: {exc}") from exc
+
     def validate(self) -> list[str]:
         """Return list of validation error messages. Empty = valid."""
-        errors = []
+        errors: list[str] = []
         if not self.instrument:
             errors.append("instrument is empty")
-        if not self.timeframe:
-            errors.append("timeframe is empty")
-        if self.timestamp is None:
-            errors.append("timestamp is None")
-        if self.high < self.low:
-            errors.append(f"high ({self.high}) < low ({self.low})")
-        if self.open < self.low or self.open > self.high:
-            errors.append(f"open ({self.open}) outside [{self.low}, {self.high}]")
-        if self.close < self.low or self.close > self.high:
-            errors.append(f"close ({self.close}) outside [{self.low}, {self.high}]")
+        if self.timeframe not in VALID_TIMEFRAMES:
+            errors.append(f"unsupported timeframe: {self.timeframe}")
+        if not isinstance(self.timestamp, datetime):
+            errors.append("timestamp is not a datetime")
+        if not self.provider:
+            errors.append("provider is empty")
+
+        numeric_values = {
+            "open": self.open,
+            "high": self.high,
+            "low": self.low,
+            "close": self.close,
+            "vwap": self.vwap,
+        }
+        for name, value in numeric_values.items():
+            if not isinstance(value, (int, float)) or not math.isfinite(value):
+                errors.append(f"{name} must be finite")
+        if not isinstance(self.volume, int):
+            errors.append("volume must be an integer")
+
+        # Do not compare non-finite values; they already have a useful error.
+        if all(isinstance(value, (int, float)) and math.isfinite(value) for value in numeric_values.values()):
+            if self.high < self.low:
+                errors.append(f"high ({self.high}) < low ({self.low})")
+            if self.open < self.low or self.open > self.high:
+                errors.append(f"open ({self.open}) outside [{self.low}, {self.high}]")
+            if self.close < self.low or self.close > self.high:
+                errors.append(f"close ({self.close}) outside [{self.low}, {self.high}]")
+            if self.vwap < 0:
+                errors.append(f"negative VWAP: {self.vwap}")
         if self.volume < 0:
             errors.append(f"negative volume: {self.volume}")
-        if self.vwap < 0:
-            errors.append(f"negative VWAP: {self.vwap}")
         return errors
 
     @property

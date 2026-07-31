@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import datetime, timedelta
 
 import structlog
@@ -36,14 +37,14 @@ class BarValidator:
     def validate_and_deduplicate(bars: list[OHLCVBar]) -> ValidationResult:
         """Run all validation checks on a list of bars.
 
-        Returns a ValidationResult with valid bars separated from rejected ones.
+        Gaps are evaluated independently for every instrument/timeframe/provider
+        series. A mixed import therefore cannot report a false gap when two
+        otherwise valid series have timestamps interleaved in the same upload.
         """
         result = ValidationResult()
-
         if not bars:
             return result
 
-        # 1. Remove bars with invalid values
         valid: list[OHLCVBar] = []
         for bar in bars:
             errors = bar.validate()
@@ -52,46 +53,47 @@ class BarValidator:
             else:
                 valid.append(bar)
 
-        # 2. Detect and remove duplicates (same instrument, timeframe, timestamp, provider)
         seen: set[tuple[str, str, datetime, str]] = set()
         deduped: list[OHLCVBar] = []
-        for bar in sorted(valid, key=lambda b: b.timestamp):
+        for bar in sorted(valid, key=lambda b: (b.instrument, b.timeframe, b.provider, b.timestamp)):
             key = (bar.instrument, bar.timeframe, bar.timestamp, bar.provider)
             if key in seen:
                 result.duplicates.append(bar)
             else:
                 seen.add(key)
                 deduped.append(bar)
-
         result.valid_bars = deduped
 
-        # 3. Detect gaps (missing bars in the timeline)
-        if len(deduped) >= 2:
-            tf_minutes = TIMEFRAME_MINUTES.get(deduped[0].timeframe)
-            if tf_minutes:
-                expected_interval = timedelta(minutes=tf_minutes)
-                for i in range(1, len(deduped)):
-                    gap = deduped[i].timestamp - deduped[i - 1].timestamp
-                    if gap > expected_interval * 1.5:  # Allow small timing variance
-                        missing_bars = int(gap / expected_interval) - 1
-                        result.gaps.append({
-                            "instrument": deduped[i].instrument,
-                            "timeframe": deduped[i].timeframe,
-                            "from": deduped[i - 1].timestamp.isoformat(),
-                            "to": deduped[i].timestamp.isoformat(),
-                            "missing_bars": missing_bars,
-                        })
+        series: dict[tuple[str, str, str], list[OHLCVBar]] = defaultdict(list)
+        for bar in deduped:
+            series[(bar.instrument, bar.timeframe, bar.provider)].append(bar)
+
+        for (_, timeframe, _), series_bars in series.items():
+            expected_minutes = TIMEFRAME_MINUTES.get(timeframe)
+            if not expected_minutes or len(series_bars) < 2:
+                continue
+            expected_interval = timedelta(minutes=expected_minutes)
+            for previous, current in zip(series_bars, series_bars[1:]):
+                gap = current.timestamp - previous.timestamp
+                if gap > expected_interval * 1.5:
+                    result.gaps.append({
+                        "instrument": current.instrument,
+                        "timeframe": current.timeframe,
+                        "provider": current.provider,
+                        "from": previous.timestamp.isoformat(),
+                        "to": current.timestamp.isoformat(),
+                        "missing_bars": int(gap / expected_interval) - 1,
+                    })
 
         if result.total_rejected > 0:
             logger.warning(
                 "data_validation",
                 total=len(bars),
-                    rejected=result.total_rejected,
+                rejected=result.total_rejected,
                 invalid=len(result.invalid_bars),
                 duplicates=len(result.duplicates),
                 gaps=len(result.gaps),
             )
-
         return result
 
 
@@ -99,10 +101,7 @@ def detect_overlapping_bars(
     existing: list[OHLCVBar],
     new_bars: list[OHLCVBar],
 ) -> list[OHLCVBar]:
-    """Filter out new bars that already exist in the stored data.
-
-    Used at ingestion time to avoid inserting duplicate bars into the database.
-    """
+    """Filter out new bars that already exist in the stored data."""
     existing_keys = {
         (b.instrument, b.timeframe, b.timestamp, b.provider)
         for b in existing

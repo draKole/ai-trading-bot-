@@ -73,6 +73,10 @@ class BarAggregator:
                 "low": b.low,
                 "close": b.close,
                 "volume": b.volume,
+                # A provider may omit VWAP.  Its typical price is the same
+                # approximation used by the provider normalization layer.
+                "vwap_numerator": (b.vwap or b.typical_price) * b.volume,
+                "session": b.session,
             }
             for b in bars
         ]
@@ -95,7 +99,15 @@ class BarAggregator:
                 pl.col("low").min().alias("low"),
                 pl.col("close").last().alias("close"),
                 pl.col("volume").sum().alias("volume"),
+                pl.col("vwap_numerator").sum().alias("vwap_numerator"),
+                pl.col("session").first().alias("session"),
             ])
+            .with_columns(
+                pl.when(pl.col("volume") > 0)
+                .then(pl.col("vwap_numerator") / pl.col("volume"))
+                .otherwise((pl.col("high") + pl.col("low") + pl.col("close")) / 3.0)
+                .alias("vwap")
+            )
             .sort("timestamp")
         )
 
@@ -111,6 +123,8 @@ class BarAggregator:
                 close=row["close"],
                 volume=row["volume"],
                 provider=bars[0].provider,
+                vwap=round(float(row["vwap"]), 6),
+                session=row["session"] or "",
             ))
 
         return result

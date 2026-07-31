@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Body
@@ -27,6 +27,18 @@ def get_market_data_service(
 
 
 # ─── Common bar serialization ─────────────────────────────────
+
+def _parse_iso_datetime(value: str, field_name: str) -> datetime:
+    """Parse an API datetime and normalize naive values to UTC."""
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid {field_name}. Use an ISO-8601 date or datetime.",
+        ) from exc
+    return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc)
+
 
 def _serialize_bar(b) -> dict:
     """Serialize a Bar ORM object to a dict for API response."""
@@ -85,8 +97,10 @@ async def get_bars(
             detail=f"Invalid timeframe. Must be one of: {VALID_TIMEFRAMES}",
         )
 
-    start_dt = datetime.fromisoformat(start) if start else None
-    end_dt = datetime.fromisoformat(end) if end else None
+    start_dt = _parse_iso_datetime(start, "start") if start else None
+    end_dt = _parse_iso_datetime(end, "end") if end else None
+    if start_dt and end_dt and end_dt < start_dt:
+        raise HTTPException(status_code=400, detail="end must not be earlier than start")
 
     bars = await service.query_bars(
         instrument=instrument.upper(),
@@ -160,14 +174,10 @@ async def fetch_and_ingest(
     service: MarketDataService = Depends(get_market_data_service),
 ):
     """Fetch data from a provider, aggregate all timeframes, and store."""
-    try:
-        start_dt = datetime.fromisoformat(start)
-        end_dt = datetime.fromisoformat(end)
-    except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid date format. Use ISO format (YYYY-MM-DD).",
-        )
+    start_dt = _parse_iso_datetime(start, "start")
+    end_dt = _parse_iso_datetime(end, "end")
+    if end_dt <= start_dt:
+        raise HTTPException(status_code=400, detail="end must be later than start")
 
     try:
         result = await service.fetch_and_ingest(
@@ -197,8 +207,10 @@ async def import_bars_json(
     if not bars:
         raise HTTPException(status_code=400, detail="No bars provided")
 
-    result = await service.import_bars(bars)
-    return result
+    try:
+        return await service.import_bars(bars)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/ingest/csv")
@@ -211,13 +223,14 @@ async def ingest_csv(
     """Upload a CSV file of OHLCV bars for ingestion."""
     from app.services.market_data.csv_provider import CSVProvider
 
-    # Save temp file
-    import tempfile, os
-    with tempfile.NamedTemporaryFile(
-        delete=False, suffix=".csv", mode="w",
-    ) as tmp:
-        content = await file.read()
-        tmp.write(content.decode("utf-8"))
+    if timeframe not in VALID_TIMEFRAMES:
+        raise HTTPException(status_code=400, detail=f"Invalid timeframe: {timeframe}")
+
+    import os
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv", mode="wb") as tmp:
+        tmp.write(await file.read())
         tmp_path = tmp.name
 
     try:
@@ -225,14 +238,20 @@ async def ingest_csv(
             default_instrument=instrument.upper(),
             default_timeframe=timeframe,
         )
-        bars = provider.load_file(tmp_path)
-        result = await service.ingest_bars(bars)
+        parsed = provider.load_file_with_report(tmp_path)
+        result = await service.ingest_bars(parsed.bars)
+        result["submitted"] = len(parsed.bars) + len(parsed.errors)
+        result["invalid"] += len(parsed.errors)
+        result["invalid_rows"] = parsed.errors[:25] + result["invalid_rows"]
+        result["parse_errors"] = len(parsed.errors)
         return {
             "file": file.filename,
             "instrument": instrument.upper(),
             "timeframe": timeframe,
             **result,
         }
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=f"CSV import failed: {exc}") from exc
     finally:
         os.unlink(tmp_path)
 
