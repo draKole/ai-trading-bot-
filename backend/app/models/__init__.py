@@ -62,6 +62,7 @@ from app.models.copilot import (
     CopilotSession, Conversation, ConversationMessage, CopilotFeedback,
 )  # noqa: F401
 from app.models.audit_log import TradingAuditLog  # noqa: F401
+from app.models.application_settings import ApplicationSettings  # noqa: F401
 
 __all__ = [
     "Base", "Instrument", "Bar",
@@ -89,4 +90,5 @@ __all__ = [
     "DashboardSnapshot", "DashboardPreference", "DashboardLayout",
     "CopilotSession", "Conversation", "ConversationMessage", "CopilotFeedback",
     "TradingAuditLog",
+    "ApplicationSettings",
 ]
