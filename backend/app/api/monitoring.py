@@ -18,8 +18,21 @@ from app.core.redis import check_redis_connection
 from app.services.monitoring import (
     MonitoringService, MonitoringController, AlertManager,
 )
+from app.services.market_data import ProviderRegistry
 
 router = APIRouter()
+
+
+async def _check_market_data_connection() -> bool:
+    """Check provider capability without fetching or mutating market data."""
+    providers = ProviderRegistry.list_providers()
+    if not providers:
+        return False
+    for name in providers:
+        provider = ProviderRegistry.get(name)
+        if provider is not None and await provider.is_available():
+            return True
+    return False
 
 _controller = MonitoringController()
 _alert_manager = AlertManager()
@@ -31,6 +44,8 @@ async def _get_controller() -> MonitoringController:
         _controller.register_db_probe(check_db_connection)
     if _controller._redis_probe is None:
         _controller.register_redis_probe(check_redis_connection)
+    if _controller._market_data_probe is None:
+        _controller.register_market_data_probe(_check_market_data_connection)
     return _controller
 
 
