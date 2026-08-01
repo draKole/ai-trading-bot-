@@ -55,7 +55,8 @@ async def _check_market_data_connection() -> dict:
         counts = {}
     instruments = ("ES", "MES", "NQ", "MNQ")
     present = [s for s in instruments if counts.get(s, 0) > 0]
-    ok = bool(provider and present)
+    # Phase 1 requires all target contracts; partial or empty coverage is degraded.
+    ok = bool(provider and present == list(instruments))
     return {"ok": ok, "provider": provider, "provider_status": "available" if provider else "unavailable", "instruments": counts, "complete_instruments": present == list(instruments), "last_successful_update": latest.isoformat() if latest else None, "latency_ms": (datetime.now(timezone.utc)-started).total_seconds()*1000}
 
 _controller = MonitoringController()
