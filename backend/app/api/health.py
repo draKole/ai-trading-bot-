@@ -35,15 +35,15 @@ async def health_full():
     """
     from app.core.database import check_db_connection
     from app.core.redis import check_redis_connection
-    from app.services.monitoring import (
-        MonitoringController,
-    )
+    from app.services.monitoring import MonitoringController
+    from app.api.monitoring import _check_market_data_connection
 
     ctrl = MonitoringController()
 
     # Wire real probes (same pattern as monitoring API)
     ctrl.register_db_probe(check_db_connection)
     ctrl.register_redis_probe(check_redis_connection)
+    ctrl.register_market_data_probe(_check_market_data_connection)
 
     # Run all probes
     results = await ctrl.run_all_probes()
