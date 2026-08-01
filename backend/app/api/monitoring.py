@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import json
 from typing import Optional
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 
 from app.core.database import get_db, check_db_connection
 from app.core.redis import check_redis_connection
@@ -19,20 +21,37 @@ from app.services.monitoring import (
     MonitoringService, MonitoringController, AlertManager,
 )
 from app.services.market_data import ProviderRegistry
+from app.models.bar import Bar
+from app.models.instrument import Instrument
 
 router = APIRouter()
 
 
-async def _check_market_data_connection() -> bool:
-    """Check provider capability without fetching or mutating market data."""
-    providers = ProviderRegistry.list_providers()
-    if not providers:
-        return False
-    for name in providers:
+async def _check_market_data_connection() -> dict:
+    """Verify provider capability and recent historical bars without fetching data."""
+    started = datetime.now(timezone.utc)
+    provider_names = ProviderRegistry.list_providers()
+    available = []
+    for name in provider_names:
         provider = ProviderRegistry.get(name)
         if provider is not None and await provider.is_available():
-            return True
-    return False
+            available.append(name)
+    provider = available[0] if available else None
+    counts: dict[str, int] = {}
+    latest = None
+    try:
+        async with __import__("app.core.database", fromlist=["async_session_factory"]).async_session_factory() as session:
+            cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+            rows = await session.execute(select(Instrument.symbol, func.count(Bar.id), func.max(Bar.timestamp)).join(Bar, Bar.instrument_id == Instrument.id).where(Instrument.symbol.in_(("ES", "MES", "NQ", "MNQ")), Bar.timestamp >= cutoff).group_by(Instrument.symbol))
+            for symbol, count, maximum in rows.all():
+                counts[symbol] = int(count)
+                if maximum and (latest is None or maximum > latest): latest = maximum
+    except Exception:
+        counts = {}
+    instruments = ("ES", "MES", "NQ", "MNQ")
+    present = [s for s in instruments if counts.get(s, 0) > 0]
+    ok = bool(provider and present)
+    return {"ok": ok, "provider": provider, "provider_status": "available" if provider else "unavailable", "instruments": counts, "complete_instruments": present == list(instruments), "last_successful_update": latest.isoformat() if latest else None, "latency_ms": (datetime.now(timezone.utc)-started).total_seconds()*1000}
 
 _controller = MonitoringController()
 _alert_manager = AlertManager()

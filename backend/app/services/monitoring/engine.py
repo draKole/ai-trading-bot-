@@ -30,6 +30,7 @@ class HealthCheck:
     detail: str = ""
     latency_ms: float | None = None
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -38,6 +39,7 @@ class HealthCheck:
             "detail": self.detail,
             "latency_ms": round(self.latency_ms, 2) if self.latency_ms is not None else None,
             "timestamp": self.timestamp.isoformat(),
+            "metadata": self.metadata,
         }
 
 
@@ -49,6 +51,7 @@ class MetricPoint:
     value: float
     tags: dict = field(default_factory=dict)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -56,6 +59,7 @@ class MetricPoint:
             "value": self.value,
             "tags": self.tags,
             "timestamp": self.timestamp.isoformat(),
+            "metadata": self.metadata,
         }
 
 
@@ -311,9 +315,12 @@ class MonitoringController:
     async def probe_market_data(self) -> HealthCheck:
         """Probe market data feed."""
         t0 = time.monotonic()
+        metadata: dict[str, Any] = {}
         if self._market_data_probe:
             try:
-                ok = await self._market_data_probe()
+                probe_result = await self._market_data_probe()
+                metadata = probe_result if isinstance(probe_result, dict) else {}
+                ok = bool(metadata.get("ok", probe_result))
             except Exception as exc:
                 ok = False
                 detail = f"Market data probe error: {exc}"
@@ -328,6 +335,7 @@ class MonitoringController:
             status="healthy" if ok else "degraded",
             detail=detail,
             latency_ms=latency,
+            metadata=metadata,
         )
 
     async def probe_workers(self) -> HealthCheck:
