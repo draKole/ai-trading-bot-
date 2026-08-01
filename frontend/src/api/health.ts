@@ -6,6 +6,15 @@ export interface ComponentHealth {
   status: string; // healthy, degraded, unhealthy, unknown
   detail: string;
   latency_ms?: number | null;
+  metadata?: {
+    ok?: boolean;
+    provider?: string | null;
+    provider_status?: string;
+    instruments?: Record<string, number>;
+    complete_instruments?: boolean;
+    last_successful_update?: string | null;
+    latency_ms?: number;
+  };
 }
 
 export interface SystemMetrics {

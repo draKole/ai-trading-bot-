@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 from typing import Optional
 from datetime import datetime, timedelta, timezone
+import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,7 +35,11 @@ async def _check_market_data_connection() -> dict:
     available = []
     for name in provider_names:
         provider = ProviderRegistry.get(name)
-        if provider is not None and await provider.is_available():
+        try:
+            reachable = await asyncio.wait_for(provider.is_available(), timeout=2.0) if provider is not None else False
+        except (TimeoutError, OSError, RuntimeError):
+            reachable = False
+        if reachable:
             available.append(name)
     provider = available[0] if available else None
     counts: dict[str, int] = {}
