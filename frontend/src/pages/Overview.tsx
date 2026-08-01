@@ -62,6 +62,27 @@ function statusIcon(status: string): string {
 
 /* ─── Sub-components ──────────────────────────────────── */
 
+function MarketDataStatusCard({ component }: { component?: ComponentHealth }) {
+  const metadata = component?.metadata;
+  if (!component) return null;
+  const instruments = metadata?.instruments ?? {};
+  return (
+    <div className={`rounded border ${statusBorder(component.status)} bg-slate-900 p-4`} data-testid="market-data-status">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-300">Market Data</h3>
+        <span className={`text-xs font-bold uppercase ${statusTextColor(component.status)}`}>{component.status}</span>
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-400">
+        <span>Provider: <b className="text-slate-200">{metadata?.provider ?? "unavailable"}</b></span>
+        <span>Provider status: <b className="text-slate-200">{metadata?.provider_status ?? "unknown"}</b></span>
+        <span>ES/MES/NQ/MNQ: <b className="text-slate-200">{Object.keys(instruments).filter((s) => (instruments[s] ?? 0) > 0).length}/4</b></span>
+        <span>Last update: <b className="text-slate-200">{metadata?.last_successful_update ? new Date(metadata.last_successful_update).toLocaleString() : "none"}</b></span>
+      </div>
+      <div className="mt-2 text-xs text-slate-500">{component.latency_ms?.toFixed(1) ?? "—"} ms · {component.detail}</div>
+    </div>
+  );
+}
+
 function ComponentHealthGrid({
   components,
 }: {
@@ -283,6 +304,9 @@ export default function Overview() {
         overall={overall}
         mode={data?.mode ?? { mode: "PAPER", live_allowed: false, uptime_seconds: 0 }}
       />
+
+      {/* Market data provider and historical bars */}
+      <MarketDataStatusCard component={data?.health?.components?.market_data} />
 
       {/* Component Health Grid */}
       <div>
