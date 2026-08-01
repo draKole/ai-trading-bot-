@@ -50,4 +50,7 @@ jobs:
 
       - name: Remove Compose resources
         if: always()
-        run: docker compose down --remove-orphans --volumes || true
+        # Compose interpolation requires a non-empty value even during teardown.
+        # The running services are already gone/irrelevant; use a local sentinel,
+        # never a credential or persisted secret.
+        run: SECRET_KEY=cleanup-sentinel docker compose down --remove-orphans --volumes || true
