@@ -124,6 +124,10 @@ health = json.loads((out / "health.json").read_text())
 assert health == {"status": "ok"}, health
 
 config = json.loads((out / "deployment-config.json").read_text())
+assert config["valid"] is True, config
+assert config["checks"]["database_url"] is True, config
+assert config["checks"]["redis_url"] is True, config
+assert config["checks"]["secret_key_set"] is True, config
 assert config["checks"]["trading_mode"] == "PAPER", config
 assert config["checks"]["live_allowed"] is False, config
 

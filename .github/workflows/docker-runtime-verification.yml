@@ -27,7 +27,11 @@ jobs:
         continue-on-error: true
         env:
           RUNTIME_EVIDENCE_DIR: runtime-evidence
-        run: bash scripts/verify_docker_runtime.sh
+        # Generate an ephemeral key in the runner process; it is never committed
+        # or persisted as an Actions variable/artifact.
+        run: |
+          export SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          bash scripts/verify_docker_runtime.sh
 
       - name: Upload runtime evidence
         if: always()

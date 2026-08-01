@@ -72,6 +72,9 @@ def test_compose_operational_safety_contract() -> None:
 
     assert environment["TRADING_MODE"] == "PAPER"
     assert environment["LIVE_ALLOWED"].lower() == "false"
+    # Application secrets must be injected at deploy time, never committed.
+    assert environment["SECRET_KEY"].startswith("${SECRET_KEY:?")
+    assert "change_me" not in environment["SECRET_KEY"]
     assert api["depends_on"]["postgres"]["condition"] == "service_healthy"
     assert api["depends_on"]["redis"]["condition"] == "service_healthy"
 

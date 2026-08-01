@@ -14,6 +14,8 @@ services:
       - LOG_LEVEL=INFO
       - TRADING_MODE=PAPER
       - LIVE_ALLOWED=false
+      # Required at deploy time; never commit or bake application secrets.
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be injected from the deployment environment}
     depends_on:
       postgres:
         condition: service_healthy
