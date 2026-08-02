@@ -43,6 +43,12 @@ run_migrations() {
     cd /app/backend
     if alembic upgrade head; then
         echo "[entrypoint] Migrations complete."
+        # Explicit CI-only fixture: proves recent stored market data without
+        # fabricating provider availability in deployments.
+        if [ "${MARKET_DATA_BOOTSTRAP_CI:-false}" = "true" ]; then
+            echo "[entrypoint] Loading opt-in CI market-data fixture..."
+            python scripts/bootstrap_market_data_fixture.py
+        fi
     else
         echo "[entrypoint] ERROR: Migration failed."
         return 1

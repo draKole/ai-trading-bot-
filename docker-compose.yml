@@ -16,6 +16,8 @@ services:
       - LIVE_ALLOWED=false
       # Required at deploy time; never commit or bake application secrets.
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be injected from the deployment environment}
+      # CI may opt into a clearly marked synthetic fixture; deployments do not.
+      - MARKET_DATA_BOOTSTRAP_CI=${MARKET_DATA_BOOTSTRAP_CI:-false}
     depends_on:
       postgres:
         condition: service_healthy
