@@ -80,3 +80,10 @@ def test_mes_migration_is_head_of_application_settings():
     assert 'down_revision: Union[str, None] = "028_application_settings"' in source
     assert "'MES'" in source
     assert "'Micro E-mini S&P 500'" in source
+
+def test_ci_fixture_entrypoint_sets_backend_import_path():
+    from pathlib import Path
+    entrypoint = Path(__file__).parents[2] / "docker-entrypoint.sh"
+    source = entrypoint.read_text()
+    assert "PYTHONPATH=/app/backend" in source
+    assert "bootstrap_market_data_fixture.py" in source
