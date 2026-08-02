@@ -17,7 +17,7 @@ class HTTPTransport(Protocol):
 class TradovateDemoAdapter(BrokerAdapter):
     """OAuth/API adapter for Tradovate demo, disabled unless credentials exist."""
     BASE_URL = "https://demo.tradovateapi.com/v1"
-    AUTH_URL = "https://live.tradovateapi.com/auth/oauthtoken"
+    AUTH_URL = "https://demo.tradovateapi.com/auth/oauthtoken"
     SUPPORTED = {"ES", "MES", "NQ", "MNQ"}
 
     def __init__(self, config: dict | None = None, transport: HTTPTransport | None = None):
@@ -42,7 +42,8 @@ class TradovateDemoAdapter(BrokerAdapter):
             return await self._transport.request(method, path, **kwargs)
         if self._client is None:
             self._client = httpx.AsyncClient(timeout=15)
-        return await self._client.request(method, f"{self.base_url}{path}", headers={"Authorization": f"Bearer {self._token}"}, **kwargs)
+        url = path if path.startswith("http") else f"{self.base_url}{path}"
+        return await self._client.request(method, url, headers={"Authorization": f"Bearer {self._token}"}, **kwargs)
 
     async def connect(self) -> bool:
         self._require_credentials()
