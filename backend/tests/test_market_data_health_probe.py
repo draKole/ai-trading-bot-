@@ -59,3 +59,42 @@ async def test_probe_timeout_is_reported_as_unavailable(monkeypatch):
     result = await monitoring._check_market_data_connection()
     assert result["ok"] is False
     assert result["provider_status"] == "unavailable"
+
+@pytest.mark.asyncio
+async def test_probe_uses_registered_available_provider_with_fixture_bars(monkeypatch):
+    """CI fixture bars still require a genuinely registered provider."""
+    monkeypatch.setattr(monitoring.ProviderRegistry, "list_providers", classmethod(lambda cls: ["yfinance"]))
+    monkeypatch.setattr(monitoring.ProviderRegistry, "get", classmethod(lambda cls, name: Provider(True)))
+    now = datetime.now(timezone.utc)
+    rows = [("ES", 1, now), ("MES", 1, now), ("NQ", 1, now), ("MNQ", 1, now)]
+    monkeypatch.setattr("app.core.database.async_session_factory", lambda: Session(rows))
+    result = await monitoring._check_market_data_connection()
+    assert result["ok"] is True
+    assert result["provider"] == "yfinance"
+    assert result["complete_instruments"] is True
+
+def test_mes_migration_is_head_of_application_settings():
+    from pathlib import Path
+    migration = Path(__file__).parents[1] / "database/migrations/versions/029_seed_mes_instrument.py"
+    source = migration.read_text()
+    assert 'down_revision: Union[str, None] = "028_application_settings"' in source
+    assert "'MES'" in source
+    assert "'Micro E-mini S&P 500'" in source
+
+def test_ci_fixture_entrypoint_sets_backend_import_path():
+    from pathlib import Path
+    entrypoint = Path(__file__).parents[2] / "docker-entrypoint.sh"
+    source = entrypoint.read_text()
+    assert "PYTHONPATH=/app/backend" in source
+    assert "bootstrap_market_data_fixture.py" in source
+
+def test_runtime_verifier_accepts_direct_full_health_payload():
+    """The full-health endpoint exposes components at the document root."""
+    from pathlib import Path
+    script = (Path(__file__).parents[2] / "scripts/verify_docker_runtime.sh").read_text()
+    assert 'health = data.get("health", data)' in script
+    assert 'components = health["components"]' in script
+    # Ensure strict checks remain attached to the normalized component map.
+    assert 'components["market_data"]' in script
+    assert 'components["workers"]' in script
+    assert 'components["broker"]' in script

@@ -47,7 +47,7 @@ run_migrations() {
         # fabricating provider availability in deployments.
         if [ "${MARKET_DATA_BOOTSTRAP_CI:-false}" = "true" ]; then
             echo "[entrypoint] Loading opt-in CI market-data fixture..."
-            python scripts/bootstrap_market_data_fixture.py
+            PYTHONPATH=/app/backend${PYTHONPATH:+:$PYTHONPATH} python scripts/bootstrap_market_data_fixture.py
         fi
     else
         echo "[entrypoint] ERROR: Migration failed."
