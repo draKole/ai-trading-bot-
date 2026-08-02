@@ -59,3 +59,24 @@ async def test_probe_timeout_is_reported_as_unavailable(monkeypatch):
     result = await monitoring._check_market_data_connection()
     assert result["ok"] is False
     assert result["provider_status"] == "unavailable"
+
+@pytest.mark.asyncio
+async def test_probe_uses_registered_available_provider_with_fixture_bars(monkeypatch):
+    """CI fixture bars still require a genuinely registered provider."""
+    monkeypatch.setattr(monitoring.ProviderRegistry, "list_providers", classmethod(lambda cls: ["yfinance"]))
+    monkeypatch.setattr(monitoring.ProviderRegistry, "get", classmethod(lambda cls, name: Provider(True)))
+    now = datetime.now(timezone.utc)
+    rows = [("ES", 1, now), ("MES", 1, now), ("NQ", 1, now), ("MNQ", 1, now)]
+    monkeypatch.setattr("app.core.database.async_session_factory", lambda: Session(rows))
+    result = await monitoring._check_market_data_connection()
+    assert result["ok"] is True
+    assert result["provider"] == "yfinance"
+    assert result["complete_instruments"] is True
+
+def test_mes_migration_is_head_of_application_settings():
+    from pathlib import Path
+    migration = Path(__file__).parents[1] / "database/migrations/versions/029_seed_mes_instrument.py"
+    source = migration.read_text()
+    assert 'down_revision: Union[str, None] = "028_application_settings"' in source
+    assert "'MES'" in source
+    assert "'Micro E-mini S&P 500'" in source

@@ -104,7 +104,7 @@ curl --fail --silent --show-error http://localhost:8000/api/v1/settings/ >"$EVID
 # the database. The three required instruments and singleton settings row must
 # exist after a clean first start.
 docker compose exec -T postgres psql -U drake -d drake_trading -Atc \
-  "SELECT symbol FROM instruments WHERE symbol IN ('ES', 'NQ', 'MNQ') ORDER BY symbol;" \
+  "SELECT symbol FROM instruments WHERE symbol IN ('ES', 'MES', 'NQ', 'MNQ') ORDER BY symbol;" \
   >"$EVIDENCE_DIR/seeded-instruments.txt"
 docker compose exec -T postgres psql -U drake -d drake_trading -Atc \
   "SELECT id || ':' || trading_mode FROM application_settings WHERE id = 1;" \
@@ -135,7 +135,7 @@ settings = json.loads((out / "settings.json").read_text())
 assert settings["trading_mode"] == "PAPER", settings
 
 instruments = (out / "seeded-instruments.txt").read_text().split()
-assert instruments == ["ES", "MNQ", "NQ"], instruments
+assert instruments == ["ES", "MES", "MNQ", "NQ"], instruments
 assert (out / "bootstrap-settings.txt").read_text().strip() == "1:PAPER"
 assert "Migrations complete." in (out / "compose.log").read_text()
 PY
