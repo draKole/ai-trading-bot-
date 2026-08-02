@@ -31,6 +31,8 @@ jobs:
         # or persisted as an Actions variable/artifact.
         run: |
           export SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          # Isolated clean-DB proof only: seed explicitly marked fixture bars.
+          export MARKET_DATA_BOOTSTRAP_CI=true
           bash scripts/verify_docker_runtime.sh
 
       - name: Upload runtime evidence
