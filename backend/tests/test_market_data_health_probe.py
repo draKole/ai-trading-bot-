@@ -87,3 +87,14 @@ def test_ci_fixture_entrypoint_sets_backend_import_path():
     source = entrypoint.read_text()
     assert "PYTHONPATH=/app/backend" in source
     assert "bootstrap_market_data_fixture.py" in source
+
+def test_runtime_verifier_accepts_direct_full_health_payload():
+    """The full-health endpoint exposes components at the document root."""
+    from pathlib import Path
+    script = (Path(__file__).parents[2] / "scripts/verify_docker_runtime.sh").read_text()
+    assert 'health = data.get("health", data)' in script
+    assert 'components = health["components"]' in script
+    # Ensure strict checks remain attached to the normalized component map.
+    assert 'components["market_data"]' in script
+    assert 'components["workers"]' in script
+    assert 'components["broker"]' in script
