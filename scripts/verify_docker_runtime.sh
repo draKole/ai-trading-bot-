@@ -34,26 +34,27 @@ from pathlib import Path
 path = Path(sys.argv[1])
 description = sys.argv[2]
 data = json.loads(path.read_text())
-
-assert data["health"]["components"]["database"]["status"] == "healthy", "database must be healthy"
-assert data["health"]["components"]["redis"]["status"] == "healthy", "redis must be healthy"
-assert data["health"]["components"]["api"]["status"] == "healthy", "api must be healthy"
-
+# Full health returns direct components; Overview wraps them under `health`.
+health = data.get("health", data)
+components = health["components"]
+assert components["database"]["status"] == "healthy", "database must be healthy"
+assert components["redis"]["status"] == "healthy", "redis must be healthy"
+assert components["api"]["status"] == "healthy", "api must be healthy"
 # The current Compose architecture intentionally has no standalone worker
 # service. It must report this honestly rather than being presented as healthy.
-workers = data["health"]["components"]["workers"]
+workers = components["workers"]
 assert workers["status"] == "degraded", f"workers status changed: {workers}"
 assert "No worker probe registered" in workers["detail"], workers
 
 # Broker credentials are intentionally absent in Phase 1; this is the only
 # external integration allowed to be unconfigured during the runtime proof.
-broker = data["health"]["components"]["broker"]
+broker = components["broker"]
 assert broker["status"] == "degraded", f"broker should be unconfigured: {broker}"
 assert "No broker probe registered" in broker["detail"], broker
 
 # A market-data readiness degradation is not an approved Phase 1 exception.
 # Keep this assertion strict so a gate failure is visible in CI evidence.
-market_data = data["health"]["components"]["market_data"]
+market_data = components["market_data"]
 assert market_data["status"] == "healthy", (
     f"{description}: market-data health must be healthy, received {market_data}"
 )
