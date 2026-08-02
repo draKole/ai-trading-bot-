@@ -30,8 +30,7 @@ async def bootstrap() -> int:
     inserted = 0
     async with async_session_factory() as session:
         rows = (await session.execute(
-            text("SELECT symbol, id FROM instruments WHERE symbol = ANY(:symbols)"),
-            {"symbols": list(SYMBOLS)},
+            text("SELECT symbol, id FROM instruments WHERE symbol IN ('ES', 'MES', 'NQ', 'MNQ')"),
         )).all()
         instruments = {symbol: instrument_id for symbol, instrument_id in rows}
         missing = [symbol for symbol in SYMBOLS if symbol not in instruments]
