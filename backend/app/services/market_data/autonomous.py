@@ -155,6 +155,10 @@ class AutonomousMarketData:
             self.state.running = False
 
     def health(self) -> dict[str, Any]:
+        now = datetime.now(timezone.utc)
+        freshness_cutoff = now - self.interval
+        fresh = bool(self.state.last_successful_update and self.state.last_successful_update >= freshness_cutoff)
+        green = bool(self.state.provider and not self.state.error and fresh and not self.state.missing_days)
         return {
             "provider": self.state.provider,
             "last_sync": self.state.last_sync.isoformat() if self.state.last_sync else None,
@@ -169,6 +173,9 @@ class AutonomousMarketData:
             "last_monthly_verification": self.state.last_monthly_verification.isoformat() if self.state.last_monthly_verification else None,
             "last_successful_update": self.state.last_successful_update.isoformat() if self.state.last_successful_update else None,
             "retraining_triggered": self.state.retraining_triggered,
+            "configured_symbols": list(SYMBOLS),
+            "fresh": fresh,
+            "status": "green" if green else "degraded",
         }
 
     async def weekly_audit(self, service_factory) -> dict[str, Any]:

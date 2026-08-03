@@ -170,3 +170,12 @@ async def test_autonomous_retraining_trigger_after_success(monkeypatch):
     assert calls == [when]
     assert engine.state.retraining_triggered is True
     assert engine.health()["last_successful_update"] is None
+
+
+def test_autonomous_health_requires_real_fresh_success_and_provider():
+    from app.services.market_data.autonomous import AutonomousMarketData
+    engine = AutonomousMarketData()
+    health = engine.health()
+    assert health["status"] == "degraded"
+    assert health["fresh"] is False
+    assert health["configured_symbols"] == ["ES", "MES", "NQ", "MNQ"]
