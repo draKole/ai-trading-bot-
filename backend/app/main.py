@@ -67,6 +67,12 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api/v1")
 
 
+@app.get("/health/full")
+async def health_full_alias():
+    """Compatibility alias for clients probing the unversioned health path."""
+    from app.api.health import health_full
+    return await health_full()
+
 @app.get("/health")
 async def health_check():
     """Liveness check — always returns 200 if the API process is alive.
