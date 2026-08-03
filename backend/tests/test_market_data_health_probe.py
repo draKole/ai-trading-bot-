@@ -204,3 +204,23 @@ async def test_find_missing_days_accepts_complete_symbol_coverage():
     class Session:
         async def execute(self, query): return Result()
     assert await AutonomousMarketData().find_missing_days(Session(), datetime(2026,8,3,tzinfo=timezone.utc), datetime(2026,8,3,23,tzinfo=timezone.utc)) == []
+
+
+def test_autonomous_health_recent_success_is_green():
+    from datetime import datetime, timedelta, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    e = AutonomousMarketData(); now = datetime.now(timezone.utc)
+    e.state.provider = "yfinance"; e.state.last_sync = now; e.state.missing_days = []
+    h=e.health(); assert h["status"] == "green" and h["fresh"] is True and h["stale"] is False
+
+def test_autonomous_health_recent_error_is_degraded():
+    from datetime import datetime, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    e=AutonomousMarketData(); e.state.provider="yfinance"; e.state.last_sync=datetime.now(timezone.utc); e.state.error="MES failed"
+    h=e.health(); assert h["status"] == "degraded" and h["fresh"] is True
+
+def test_autonomous_health_freshness_boundary():
+    from datetime import datetime, timedelta, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    e=AutonomousMarketData(); e.state.provider="yfinance"; e.state.last_sync=datetime.now(timezone.utc)-e.interval-timedelta(seconds=1)
+    assert e.health()["stale"] is True

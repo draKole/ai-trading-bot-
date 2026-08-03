@@ -156,10 +156,9 @@ class AutonomousMarketData:
         green = bool(self.state.provider and not self.state.error and not stale and not self.state.missing_days)
         return {
             "provider": self.state.provider,
-            "status": "stale" if stale else "current",
+            "status": "green" if green else ("stale" if stale else "degraded"),
             "stale": stale,
             "fresh": not stale,
-            "status": "green" if green else "degraded",
             "configured_symbols": list(SYMBOLS),
             "age_seconds": age_seconds,
             "last_sync": self.state.last_sync.isoformat() if self.state.last_sync else None,
