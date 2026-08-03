@@ -41,10 +41,12 @@ async def lifespan(app: FastAPI):
             "LIVE mode is not allowed — set LIVE_ALLOWED=true in the environment"
         )
 
-    yield
-
-    # ── Shutdown ───────────────────────────────────────────────
-    await close_redis()
+    await autonomous_sync.start(async_session_factory)
+    try:
+        yield
+    finally:
+        await autonomous_sync.stop()
+        await close_redis()
 
 
 app = FastAPI(
