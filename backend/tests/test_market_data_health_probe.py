@@ -131,7 +131,7 @@ def test_autonomous_post_close_gate_and_holiday_calendar():
     from app.services.market_data.autonomous import AutonomousMarketData
     engine = AutonomousMarketData()
     assert engine.is_post_close(datetime(2026, 8, 3, 15, tzinfo=timezone.utc)) is False
-    assert engine.is_post_close(datetime(2026, 8, 3, 16, tzinfo=timezone.utc)) is True
+    assert engine.is_post_close(datetime(2026, 8, 3, 20, 15, tzinfo=timezone.utc)) is True
     assert datetime(2026, 7, 4).date() if False else True
 
 def test_autonomous_cme_calendar_and_post_close_due():

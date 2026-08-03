@@ -60,7 +60,7 @@ class AutonomousMarketData:
         holidays: set[date] = set()
         for y in range(year, end_year + 1):
             def observed(d: date) -> date:
-                return d + timedelta(days=1) if d.weekday() == 5 else d - timedelta(days=1) if d.weekday() == 6 else d
+                return d - timedelta(days=1) if d.weekday() == 5 else d + timedelta(days=1) if d.weekday() == 6 else d
             holidays.update(observed(date(y, m, d)) for m, d in ((1, 1), (6, 19), (7, 4), (12, 25)))
             # nth weekday: weekday Monday=0; CME recurring federal closures.
             def nth(month: int, weekday: int, n: int) -> date:
@@ -71,7 +71,8 @@ class AutonomousMarketData:
             a, b, c = y % 19, y // 100, y % 100
             d, e, f = b // 4, b % 4, (b + 8) // 25
             g = (b - f + 1) // 3; h = (19*a + b - d - g + 15) % 30
-            i, k, l = c // 4, c % 4, (32 + 2*e + 2*i - h - k) % 7
+            i, k = c // 4, c % 4
+            l = (32 + 2*e + 2*i - h - k) % 7
             m = (a + 11*h + 22*l) // 451
             easter = date(y, (h + l - 7*m + 114) // 31, (h + l - 7*m + 114) % 31 + 1)
             holidays.add(easter - timedelta(days=2))
@@ -154,9 +155,10 @@ class AutonomousMarketData:
         age_seconds = (now - self.state.last_sync).total_seconds() if self.state.last_sync else None
         stale = age_seconds is None or age_seconds > self.interval.total_seconds()
         green = bool(self.state.provider and not self.state.error and not stale and not self.state.missing_days)
+        status = "green" if green else ("degraded" if not self.state.provider or self.state.error else "stale")
         return {
             "provider": self.state.provider,
-            "status": "green" if green else ("stale" if stale else "degraded"),
+            "status": status,
             "stale": stale,
             "fresh": not stale,
             "configured_symbols": list(SYMBOLS),
