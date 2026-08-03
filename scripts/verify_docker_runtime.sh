@@ -100,6 +100,7 @@ curl --fail --silent --show-error http://localhost:8000/api/v1/health/full >"$EV
 curl --fail --silent --show-error http://localhost:8000/api/v1/monitoring/health >"$EVIDENCE_DIR/overview-health.json"
 curl --fail --silent --show-error http://localhost:8000/api/v1/infrastructure/deployment/config >"$EVIDENCE_DIR/deployment-config.json"
 curl --fail --silent --show-error http://localhost:8000/api/v1/settings/ >"$EVIDENCE_DIR/settings.json"
+curl --fail --silent --show-error http://localhost:8000/api/v1/market-data/autonomous/health >"$EVIDENCE_DIR/autonomous-health.json"
 
 # Verify that migrations performed the documented bootstrap, without mutating
 # the database. The three required instruments and singleton settings row must
@@ -138,6 +139,12 @@ assert settings["trading_mode"] == "PAPER", settings
 instruments = (out / "seeded-instruments.txt").read_text().split()
 assert instruments == ["ES", "MES", "MNQ", "NQ"], instruments
 assert (out / "bootstrap-settings.txt").read_text().strip() == "1:PAPER"
+autonomous = json.loads((out / "autonomous-health.json").read_text())
+assert autonomous["scheduler_started"] is True, autonomous
+assert autonomous["running"] is False, autonomous
+assert autonomous["provider"] in (None, "csv", "yfinance", "tradovate", "databento"), autonomous
+for field in ("last_sync", "next_sync", "last_weekly_audit", "last_monthly_verification", "error", "records", "missing_days"):
+    assert field in autonomous, autonomous
 assert "Migrations complete." in (out / "compose.log").read_text()
 PY
 
