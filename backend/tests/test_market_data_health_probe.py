@@ -157,3 +157,9 @@ def test_lifespan_starts_and_stops_autonomous_scheduler():
     assert "await autonomous_sync.start(async_session_factory, interval_seconds=86400)" in source
     assert "await autonomous_sync.stop()" in source
     assert source.index("try:") < source.index("await autonomous_sync.stop()")
+
+
+def test_lifespan_uses_daily_scheduler_interval():
+    from pathlib import Path
+    source = (Path(__file__).parents[1] / "app/main.py").read_text()
+    assert "interval_seconds=86400" in source
