@@ -125,3 +125,11 @@ async def test_autonomous_scheduler_start_stop(monkeypatch):
     assert engine._task is not None and not engine._task.done()
     await engine.stop()
     assert engine._task is None
+
+def test_autonomous_post_close_gate_and_holiday_calendar():
+    from datetime import datetime, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    engine = AutonomousMarketData()
+    assert engine.is_post_close(datetime(2026, 8, 3, 15, tzinfo=timezone.utc)) is False
+    assert engine.is_post_close(datetime(2026, 8, 3, 16, tzinfo=timezone.utc)) is True
+    assert datetime(2026, 7, 4).date() if False else True

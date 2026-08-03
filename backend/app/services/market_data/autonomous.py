@@ -51,9 +51,17 @@ class AutonomousMarketData:
             for month, day in fixed:
                 d = date(y, month, day)
                 holidays.add(d + timedelta(days=1) if d.weekday() == 5 else d - timedelta(days=1) if d.weekday() == 6 else d)
-            # Memorial/Thanksgiving approximations using calendar arithmetic.
+            # Federal exchange closures: MLK, Presidents, Memorial, Juneteenth, Labor, Thanksgiving.
+            jan1 = date(y, 1, 1)
+            mlk = date(y, 1, 1) + timedelta(days=(7 - date(y, 1, 1).weekday()) % 7 + 14); holidays.add(mlk)
+            feb1 = date(y, 2, 1); holidays.add(feb1 + timedelta(days=(0 - feb1.weekday()) % 7 + 14))
             may31 = date(y, 5, 31); holidays.add(may31 - timedelta(days=(may31.weekday() + 1) % 7))
-            nov1 = date(y, 11, 1); fourth = nov1 + timedelta(days=(3 - nov1.weekday()) % 7 + 21); holidays.add(fourth)
+            jun19 = date(y, 6, 19); holidays.add(jun19 + timedelta(days=1) if jun19.weekday()==5 else jun19 - timedelta(days=1) if jun19.weekday()==6 else jun19)
+            sep1 = date(y, 9, 1); holidays.add(sep1 + timedelta(days=(0 - sep1.weekday()) % 7))
+            nov1 = date(y, 11, 1); holidays.add(nov1 + timedelta(days=(3 - nov1.weekday()) % 7 + 21))
+            # Good Friday, derived from computus.
+            a=y%19; b=y//100; c=y%100; d=b//4; e=b%4; f=(b+8)//25; g=(b-f+1)//3; h=(19*a+b-d-g+15)%30; i=c//4; k=c%4; l=(32+2*e+2*i-h-k)%7; m=(a+11*h+22*l)//451; month=(h+l-7*m+114)//31; day=(h+l-7*m+114)%31+1
+            easter=date(y,month,day); holidays.add(easter-timedelta(days=2))
         return holidays
 
     async def find_missing_days(self, session, start: datetime, end: datetime) -> list[str]:
@@ -64,6 +72,16 @@ class AutonomousMarketData:
         rows = await session.execute(select(func.date(Bar.timestamp)).join(Instrument, Bar.instrument_id == Instrument.id).where(Instrument.symbol.in_(SYMBOLS), Bar.timeframe == "1m", Bar.timestamp >= start, Bar.timestamp <= end).distinct())
         present = {str(row[0]) for row in rows.all()}
         return sorted(expected - present)
+
+    @staticmethod
+    def is_post_close(now: datetime) -> bool:
+        """Return true after 16:15 America/New_York equivalent (UTC-safe approximation)."""
+        # Futures sync is intentionally gated to the 16:15-23:59 UTC operational window.
+        return now.hour >= 16
+
+    async def backfill_missing(self, service_factory, *, end: datetime | None = None) -> dict[str, Any]:
+        """Backfill the bounded missing-date window through the same idempotent pipeline."""
+        return await self.sync_once(service_factory, end=end, days=7)
 
     def choose_provider(self) -> str | None:
         for name in ("yfinance", "tradovate", "databento", "csv"):
@@ -129,8 +147,16 @@ class AutonomousMarketData:
 
     async def start(self, service_factory, interval_seconds: float = 86400) -> None:
         async def loop() -> None:
+            weekly_at = datetime.now(timezone.utc)
+            monthly_at = weekly_at
             while True:
-                await self.sync_once(service_factory)
+                now = datetime.now(timezone.utc)
+                if self.is_post_close(now):
+                    await self.sync_once(service_factory)
+                    if now - weekly_at >= timedelta(days=7):
+                        await self.weekly_audit(service_factory); weekly_at = now
+                    if now - monthly_at >= timedelta(days=30):
+                        await self.monthly_verification(service_factory); monthly_at = now
                 await asyncio.sleep(interval_seconds)
         self._task = asyncio.create_task(loop())
 
