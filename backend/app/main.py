@@ -11,6 +11,8 @@ from app.core.config import settings
 from app.core.database import check_db_connection
 from app.core.redis import check_redis_connection, close_redis
 from app.api.router import api_router
+from app.api.market_data import autonomous_sync
+from app.core.database import async_session_factory
 
 
 @asynccontextmanager

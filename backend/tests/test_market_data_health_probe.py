@@ -111,3 +111,17 @@ def test_autonomous_calendar_excludes_weekends():
     from app.services.market_data.autonomous import AutonomousMarketData
     days = AutonomousMarketData().trading_days(datetime(2026, 8, 1, tzinfo=timezone.utc), datetime(2026, 8, 3, tzinfo=timezone.utc))
     assert days == ["2026-08-03"]
+
+@pytest.mark.asyncio
+async def test_autonomous_scheduler_start_stop(monkeypatch):
+    from app.services.market_data.autonomous import AutonomousMarketData
+    engine = AutonomousMarketData()
+    calls = []
+    async def fake_sync(factory):
+        calls.append(factory)
+        return {"status": "ok"}
+    monkeypatch.setattr(engine, "sync_once", fake_sync)
+    await engine.start(object(), interval_seconds=3600)
+    assert engine._task is not None and not engine._task.done()
+    await engine.stop()
+    assert engine._task is None
