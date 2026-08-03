@@ -105,6 +105,29 @@ def test_autonomous_sync_health_is_safe_before_first_sync():
     assert health["last_sync"] is None
     assert health["records"] == 0
     assert health["running"] is False
+    assert health["status"] == "unhealthy"
+    assert health["stale"] is True
+
+def test_autonomous_sync_health_is_current_after_success():
+    from datetime import datetime, timedelta, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    engine = AutonomousMarketData(interval=timedelta(hours=24))
+    engine.state.provider = "csv"
+    engine.state.last_successful_update = datetime.now(timezone.utc) - timedelta(minutes=1)
+    health = engine.health()
+    assert health["status"] == "current"
+    assert health["stale"] is False
+    assert health["age_seconds"] >= 0
+
+def test_autonomous_sync_health_marks_provider_or_error_non_green():
+    from datetime import datetime, timedelta, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    engine = AutonomousMarketData()
+    engine.state.provider = "csv"
+    engine.state.last_successful_update = datetime.now(timezone.utc)
+    engine.state.error = "provider timeout"
+    health = engine.health()
+    assert health["status"] == "unhealthy"
 
 def test_autonomous_calendar_excludes_weekends():
     from datetime import date, datetime, timezone

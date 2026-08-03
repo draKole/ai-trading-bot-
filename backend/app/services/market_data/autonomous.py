@@ -155,8 +155,17 @@ class AutonomousMarketData:
             self.state.running = False
 
     def health(self) -> dict[str, Any]:
+        now = datetime.now(timezone.utc)
+        age_seconds = (now - self.state.last_successful_update).total_seconds() if self.state.last_successful_update else None
+        stale = age_seconds is None or age_seconds > self.interval.total_seconds()
+        status = "stale" if stale else "current"
+        if self.state.error or not self.state.provider:
+            status = "unhealthy"
         return {
             "provider": self.state.provider,
+            "status": status,
+            "stale": stale,
+            "age_seconds": age_seconds,
             "last_sync": self.state.last_sync.isoformat() if self.state.last_sync else None,
             "next_sync": self.state.next_sync.isoformat() if self.state.next_sync else None,
             "records": self.state.records,
