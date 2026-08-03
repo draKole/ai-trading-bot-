@@ -10,6 +10,7 @@ from app.models.instrument import Instrument
 from typing import Any
 from app.services.market_data.provider import ProviderRegistry
 from app.services.market_data.service import MarketDataService
+from app.core.config import settings
 
 SYMBOLS = ("ES", "MES", "NQ", "MNQ")
 
@@ -25,6 +26,9 @@ class SyncState:
     running: bool = False
     last_weekly_audit: datetime | None = None
     last_monthly_verification: datetime | None = None
+    retraining_required: bool = False
+    retraining_reason: str | None = None
+    retraining_triggered_at: datetime | None = None
 
 class AutonomousMarketData:
     """Coordinates bounded, idempotent provider fetches without fabricating data."""
@@ -56,7 +60,7 @@ class AutonomousMarketData:
         holidays: set[date] = set()
         for y in range(year, end_year + 1):
             def observed(d: date) -> date:
-                return d + timedelta(days=1) if d.weekday() == 5 else d - timedelta(days=1) if d.weekday() == 6 else d
+                return d - timedelta(days=1) if d.weekday() == 5 else d + timedelta(days=1) if d.weekday() == 6 else d
             holidays.update(observed(date(y, m, d)) for m, d in ((1, 1), (6, 19), (7, 4), (12, 25)))
             # nth weekday: weekday Monday=0; CME recurring federal closures.
             def nth(month: int, weekday: int, n: int) -> date:
@@ -67,7 +71,8 @@ class AutonomousMarketData:
             a, b, c = y % 19, y // 100, y % 100
             d, e, f = b // 4, b % 4, (b + 8) // 25
             g = (b - f + 1) // 3; h = (19*a + b - d - g + 15) % 30
-            i, k, l = c // 4, c % 4, (32 + 2*e + 2*i - h - k) % 7
+            i, k = c // 4, c % 4
+            l = (32 + 2*e + 2*i - h - k) % 7
             m = (a + 11*h + 22*l) // 451
             easter = date(y, (h + l - 7*m + 114) // 31, (h + l - 7*m + 114) % 31 + 1)
             holidays.add(easter - timedelta(days=2))
@@ -77,9 +82,13 @@ class AutonomousMarketData:
         expected = set(self.trading_days(start, end))
         if not expected:
             return []
-        rows = await session.execute(select(func.date(Bar.timestamp)).join(Instrument, Bar.instrument_id == Instrument.id).where(Instrument.symbol.in_(SYMBOLS), Bar.timeframe == "1m", Bar.timestamp >= start, Bar.timestamp <= end).distinct())
-        present = {str(row[0]) for row in rows.all()}
-        return sorted(expected - present)
+        # A date is complete only when all required contracts have base bars.
+        rows = await session.execute(select(Instrument.symbol, func.date(Bar.timestamp)).join(Bar, Bar.instrument_id == Instrument.id).where(Instrument.symbol.in_(SYMBOLS), Bar.timeframe == "1m", Bar.timestamp >= start, Bar.timestamp <= end).distinct())
+        present_by_day: dict[str, set[str]] = {}
+        for symbol, day in rows.all():
+            present_by_day.setdefault(str(day), set()).add(symbol)
+        complete = {day for day, symbols in present_by_day.items() if set(SYMBOLS).issubset(symbols)}
+        return sorted(expected - complete)
 
     @staticmethod
     def is_post_close(now: datetime) -> bool:
@@ -97,11 +106,10 @@ class AutonomousMarketData:
         return await self.sync_once(service_factory, end=end, days=7)
 
     def choose_provider(self) -> str | None:
-        for name in ("yfinance", "tradovate", "databento", "csv"):
-            provider = ProviderRegistry.get(name)
-            if provider is not None:
-                return name
-        return None
+        """Select only the configured provider; never silently substitute another source."""
+        configured = settings.DATA_PROVIDER
+        provider = ProviderRegistry.get(configured)
+        return configured if provider is not None else None
 
     async def sync_once(self, service_factory, *, end: datetime | None = None, days: int = 1) -> dict[str, Any]:
         if self.state.running:
@@ -132,6 +140,10 @@ class AutonomousMarketData:
             self.state.records = total
             self.state.error = "; ".join(errors) or None
             self.state.last_sync = datetime.now(timezone.utc)
+            if errors:
+                self.state.retraining_required = True
+                self.state.retraining_reason = "market_data_sync_partial_failure"
+                self.state.retraining_triggered_at = self.state.last_sync
             self.state.next_sync = self.state.last_sync + self.interval
             self.state.duration_seconds = (self.state.last_sync - started).total_seconds()
             return {"status": "ok" if not errors else "partial", "records": total, "errors": errors}
@@ -139,8 +151,18 @@ class AutonomousMarketData:
             self.state.running = False
 
     def health(self) -> dict[str, Any]:
+        now = datetime.now(timezone.utc)
+        age_seconds = (now - self.state.last_sync).total_seconds() if self.state.last_sync else None
+        stale = age_seconds is None or age_seconds > self.interval.total_seconds()
+        green = bool(self.state.provider and not self.state.error and not stale and not self.state.missing_days)
+        status = "green" if green else ("degraded" if not self.state.provider or self.state.error else "stale")
         return {
             "provider": self.state.provider,
+            "status": status,
+            "stale": stale,
+            "fresh": not stale,
+            "configured_symbols": list(SYMBOLS),
+            "age_seconds": age_seconds,
             "last_sync": self.state.last_sync.isoformat() if self.state.last_sync else None,
             "next_sync": self.state.next_sync.isoformat() if self.state.next_sync else None,
             "records": self.state.records,
@@ -151,6 +173,9 @@ class AutonomousMarketData:
             "scheduler_started": self._task is not None and not self._task.done(),
             "last_weekly_audit": self.state.last_weekly_audit.isoformat() if self.state.last_weekly_audit else None,
             "last_monthly_verification": self.state.last_monthly_verification.isoformat() if self.state.last_monthly_verification else None,
+            "retraining_required": self.state.retraining_required,
+            "retraining_reason": self.state.retraining_reason,
+            "retraining_triggered_at": self.state.retraining_triggered_at.isoformat() if self.state.retraining_triggered_at else None,
         }
 
     async def weekly_audit(self, service_factory) -> dict[str, Any]:

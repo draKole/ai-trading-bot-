@@ -131,7 +131,7 @@ def test_autonomous_post_close_gate_and_holiday_calendar():
     from app.services.market_data.autonomous import AutonomousMarketData
     engine = AutonomousMarketData()
     assert engine.is_post_close(datetime(2026, 8, 3, 15, tzinfo=timezone.utc)) is False
-    assert engine.is_post_close(datetime(2026, 8, 3, 16, tzinfo=timezone.utc)) is True
+    assert engine.is_post_close(datetime(2026, 8, 3, 20, 15, tzinfo=timezone.utc)) is True
     assert datetime(2026, 7, 4).date() if False else True
 
 def test_autonomous_cme_calendar_and_post_close_due():
@@ -157,3 +157,70 @@ def test_lifespan_starts_and_stops_autonomous_scheduler():
     assert "await autonomous_sync.start(async_session_factory, interval_seconds=86400)" in source
     assert "await autonomous_sync.stop()" in source
     assert source.index("try:") < source.index("await autonomous_sync.stop()")
+
+@pytest.mark.asyncio
+async def test_autonomous_sync_uses_only_configured_provider(monkeypatch):
+    """Autonomous sync must not silently switch to a different registered source."""
+    from app.services.market_data.autonomous import AutonomousMarketData
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "DATA_PROVIDER", "csv")
+    monkeypatch.setattr("app.services.market_data.autonomous.ProviderRegistry.get", lambda name: object() if name == "yfinance" else None)
+    assert AutonomousMarketData().choose_provider() is None
+
+@pytest.mark.asyncio
+async def test_autonomous_sync_selects_configured_registered_provider(monkeypatch):
+    from app.services.market_data.autonomous import AutonomousMarketData
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "DATA_PROVIDER", "yfinance")
+    monkeypatch.setattr("app.services.market_data.autonomous.ProviderRegistry.get", lambda name: object() if name == "yfinance" else None)
+    assert AutonomousMarketData().choose_provider() == "yfinance"
+
+
+def test_autonomous_health_starts_stale_and_degraded_without_provider():
+    from app.services.market_data.autonomous import AutonomousMarketData
+    health = AutonomousMarketData().health()
+    assert health["status"] == "degraded"
+    assert health["stale"] is True
+    assert health["fresh"] is False
+    assert health["configured_symbols"] == ["ES", "MES", "NQ", "MNQ"]
+
+
+@pytest.mark.asyncio
+async def test_find_missing_days_detects_partial_symbol_coverage():
+    from datetime import datetime, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    class Result:
+        def all(self): return [("ES", "2026-08-03"), ("MES", "2026-08-03"), ("NQ", "2026-08-03")]
+    class Session:
+        async def execute(self, query): return Result()
+    assert await AutonomousMarketData().find_missing_days(Session(), datetime(2026,8,3,tzinfo=timezone.utc), datetime(2026,8,3,23,tzinfo=timezone.utc)) == ["2026-08-03"]
+
+@pytest.mark.asyncio
+async def test_find_missing_days_accepts_complete_symbol_coverage():
+    from datetime import datetime, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    class Result:
+        def all(self): return [(symbol, "2026-08-03") for symbol in ("ES", "MES", "NQ", "MNQ")]
+    class Session:
+        async def execute(self, query): return Result()
+    assert await AutonomousMarketData().find_missing_days(Session(), datetime(2026,8,3,tzinfo=timezone.utc), datetime(2026,8,3,23,tzinfo=timezone.utc)) == []
+
+
+def test_autonomous_health_recent_success_is_green():
+    from datetime import datetime, timedelta, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    e = AutonomousMarketData(); now = datetime.now(timezone.utc)
+    e.state.provider = "yfinance"; e.state.last_sync = now; e.state.missing_days = []
+    h=e.health(); assert h["status"] == "green" and h["fresh"] is True and h["stale"] is False
+
+def test_autonomous_health_recent_error_is_degraded():
+    from datetime import datetime, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    e=AutonomousMarketData(); e.state.provider="yfinance"; e.state.last_sync=datetime.now(timezone.utc); e.state.error="MES failed"
+    h=e.health(); assert h["status"] == "degraded" and h["fresh"] is True
+
+def test_autonomous_health_freshness_boundary():
+    from datetime import datetime, timedelta, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    e=AutonomousMarketData(); e.state.provider="yfinance"; e.state.last_sync=datetime.now(timezone.utc)-e.interval-timedelta(seconds=1)
+    assert e.health()["stale"] is True
