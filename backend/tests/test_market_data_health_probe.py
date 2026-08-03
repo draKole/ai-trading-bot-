@@ -98,3 +98,10 @@ def test_runtime_verifier_accepts_direct_full_health_payload():
     assert 'components["market_data"]' in script
     assert 'components["workers"]' in script
     assert 'components["broker"]' in script
+
+def test_autonomous_sync_health_is_safe_before_first_sync():
+    from app.services.market_data.autonomous import AutonomousMarketData
+    health = AutonomousMarketData().health()
+    assert health["last_sync"] is None
+    assert health["records"] == 0
+    assert health["running"] is False
