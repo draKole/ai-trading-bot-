@@ -1,7 +1,7 @@
 """Market-data health probe edge cases: provider and recent DB-bar contracts."""
 from __future__ import annotations
 import asyncio
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import pytest
 from app.api import monitoring
 
@@ -107,7 +107,7 @@ def test_autonomous_sync_health_is_safe_before_first_sync():
     assert health["running"] is False
 
 def test_autonomous_calendar_excludes_weekends():
-    from datetime import datetime, timezone
+    from datetime import date, datetime, timezone
     from app.services.market_data.autonomous import AutonomousMarketData
     days = AutonomousMarketData().trading_days(datetime(2026, 8, 1, tzinfo=timezone.utc), datetime(2026, 8, 3, tzinfo=timezone.utc))
     assert days == ["2026-08-03"]
@@ -127,7 +127,7 @@ async def test_autonomous_scheduler_start_stop(monkeypatch):
     assert engine._task is None
 
 def test_autonomous_post_close_gate_and_holiday_calendar():
-    from datetime import datetime, timezone
+    from datetime import date, datetime, timezone
     from app.services.market_data.autonomous import AutonomousMarketData
     engine = AutonomousMarketData()
     assert engine.is_post_close(datetime(2026, 8, 3, 15, tzinfo=timezone.utc)) is False
@@ -135,7 +135,7 @@ def test_autonomous_post_close_gate_and_holiday_calendar():
     assert datetime(2026, 7, 4).date() if False else True
 
 def test_autonomous_cme_calendar_and_post_close_due():
-    from datetime import datetime, timezone
+    from datetime import date, datetime, timezone
     from app.services.market_data.autonomous import AutonomousMarketData
     engine = AutonomousMarketData()
     holidays = engine.market_holidays(2026)
