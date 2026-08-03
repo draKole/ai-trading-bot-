@@ -157,3 +157,33 @@ def test_lifespan_starts_and_stops_autonomous_scheduler():
     assert "await autonomous_sync.start(async_session_factory, interval_seconds=86400)" in source
     assert "await autonomous_sync.stop()" in source
     assert source.index("try:") < source.index("await autonomous_sync.stop()")
+
+@pytest.mark.asyncio
+async def test_find_missing_days_detects_partial_symbol_coverage():
+    from datetime import datetime, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    class Result:
+        def all(self):
+            return [("ES", "2026-08-03"), ("MES", "2026-08-03"), ("NQ", "2026-08-03")]
+    class Session:
+        async def execute(self, query):
+            return Result()
+    missing = await AutonomousMarketData().find_missing_days(
+        Session(), datetime(2026, 8, 3, tzinfo=timezone.utc), datetime(2026, 8, 3, 23, tzinfo=timezone.utc)
+    )
+    assert missing == ["2026-08-03"]
+
+@pytest.mark.asyncio
+async def test_find_missing_days_accepts_complete_symbol_coverage():
+    from datetime import datetime, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    class Result:
+        def all(self):
+            return [(symbol, "2026-08-03") for symbol in ("ES", "MES", "NQ", "MNQ")]
+    class Session:
+        async def execute(self, query):
+            return Result()
+    missing = await AutonomousMarketData().find_missing_days(
+        Session(), datetime(2026, 8, 3, tzinfo=timezone.utc), datetime(2026, 8, 3, 23, tzinfo=timezone.utc)
+    )
+    assert missing == []

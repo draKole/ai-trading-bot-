@@ -77,9 +77,15 @@ class AutonomousMarketData:
         expected = set(self.trading_days(start, end))
         if not expected:
             return []
-        rows = await session.execute(select(func.date(Bar.timestamp)).join(Instrument, Bar.instrument_id == Instrument.id).where(Instrument.symbol.in_(SYMBOLS), Bar.timeframe == "1m", Bar.timestamp >= start, Bar.timestamp <= end).distinct())
-        present = {str(row[0]) for row in rows.all()}
-        return sorted(expected - present)
+        # A date is complete only when each required contract has at least one
+        # stored base-timeframe bar.  Grouping dates without the symbol would
+        # hide partial coverage (for example ES present while MES is missing).
+        rows = await session.execute(select(Instrument.symbol, func.date(Bar.timestamp)).join(Bar, Bar.instrument_id == Instrument.id).where(Instrument.symbol.in_(SYMBOLS), Bar.timeframe == "1m", Bar.timestamp >= start, Bar.timestamp <= end).distinct())
+        present_by_day: dict[str, set[str]] = {}
+        for symbol, day in rows.all():
+            present_by_day.setdefault(str(day), set()).add(symbol)
+        complete = {day for day, symbols in present_by_day.items() if set(SYMBOLS).issubset(symbols)}
+        return sorted(expected - complete)
 
     @staticmethod
     def is_post_close(now: datetime) -> bool:
