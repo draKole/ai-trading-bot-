@@ -43,7 +43,7 @@ async def test_probe_partial_instruments(monkeypatch):
     now = datetime.now(timezone.utc)
     monkeypatch.setattr("app.core.database.async_session_factory", lambda: Session([("ES", 3, now)]))
     result = await monitoring._check_market_data_connection()
-    assert result["ok"] is True
+    assert result["ok"] is False
     assert result["complete_instruments"] is False
     assert result["last_successful_update"]
 

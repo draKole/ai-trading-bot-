@@ -55,8 +55,12 @@ async def _check_market_data_connection() -> dict:
         counts = {}
     instruments = ("ES", "MES", "NQ", "MNQ")
     present = [s for s in instruments if counts.get(s, 0) > 0]
-    ok = bool(provider and present)
-    return {"ok": ok, "provider": provider, "provider_status": "available" if provider else "unavailable", "instruments": counts, "complete_instruments": present == list(instruments), "last_successful_update": latest.isoformat() if latest else None, "latency_ms": (datetime.now(timezone.utc)-started).total_seconds()*1000}
+    complete_instruments = present == list(instruments)
+    # A market-data health check is only healthy when every contract required
+    # by the runtime gate has recent bars.  Reporting partial coverage as OK
+    # allowed a stalled/partially seeded feed to appear healthy.
+    ok = bool(provider and complete_instruments and latest)
+    return {"ok": ok, "provider": provider, "provider_status": "available" if provider else "unavailable", "instruments": counts, "complete_instruments": complete_instruments, "last_successful_update": latest.isoformat() if latest else None, "latency_ms": (datetime.now(timezone.utc)-started).total_seconds()*1000}
 
 _controller = MonitoringController()
 _alert_manager = AlertManager()
