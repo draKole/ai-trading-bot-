@@ -3,7 +3,7 @@ import {
   runDryBacktest,
   type BacktestResult,
 } from "../api/backtesting";
-import { getInstruments, type Instrument } from "../api/market-data";
+import { getBars, getInstruments, type Instrument } from "../api/market-data";
 import { createChart, ColorType } from "lightweight-charts";
 
 /* ─── Constants ─────────────────────────────────────── */
@@ -26,35 +26,7 @@ function defaultEnd(): string {
   return new Date().toISOString().slice(0, 16);
 }
 
-function generateSampleBars(
-  symbol: string,
-  timeframe: string,
-  bars: number = 200,
-): object[] {
-  const now = new Date();
-  const result: object[] = [];
-  let price = symbol === "NQ" ? 20000 : symbol === "MNQ" ? 20000 : 5500;
-  const stepMin =
-    timeframe === "5m" ? 5 : timeframe === "15m" ? 15 : 60;
-  for (let i = bars - 1; i >= 0; i--) {
-    const t = new Date(now.getTime() - i * stepMin * 60 * 1000);
-    const change = (Math.random() - 0.5) * price * 0.005;
-    const open = price;
-    price += change;
-    const close = price;
-    const high = Math.max(open, close) + Math.random() * price * 0.002;
-    const low = Math.min(open, close) - Math.random() * price * 0.002;
-    result.push({
-      timestamp: t.toISOString(),
-      open: +open.toFixed(2),
-      high: +high.toFixed(2),
-      low: +low.toFixed(2),
-      close: +close.toFixed(2),
-      volume: Math.floor(Math.random() * 1000 + 100),
-    });
-  }
-  return result;
-}
+/* Historical bars are fetched from the market-data API; no synthetic bars. */
 
 /* ─── Formatting ─────────────────────────────────────── */
 
@@ -147,7 +119,13 @@ export default function Backtesting() {
     setResult(null);
 
     try {
-      const bars = generateSampleBars(symbol, timeframe, barsCount);
+      const start = new Date(startTime).toISOString();
+      const end = new Date(endTime).toISOString();
+      const historical = await getBars(symbol, timeframe, start, end);
+      if (!historical.bars.length) {
+        throw new Error(`No ${symbol} ${timeframe} bars found for the selected range. Import historical data before running a backtest.`);
+      }
+      const bars = historical.bars.slice(-barsCount);
       const res = await runDryBacktest({
         instrument: symbol,
         timeframe,
@@ -239,7 +217,7 @@ export default function Backtesting() {
       <div>
         <h2 className="text-2xl font-bold text-slate-100">Backtesting</h2>
         <p className="text-sm text-slate-500 mt-1">
-          Run strategy simulations over generated sample data.
+          Run strategy simulations over imported historical market data.
         </p>
       </div>
 
