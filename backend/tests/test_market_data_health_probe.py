@@ -157,3 +157,16 @@ def test_lifespan_starts_and_stops_autonomous_scheduler():
     assert "await autonomous_sync.start(async_session_factory, interval_seconds=86400)" in source
     assert "await autonomous_sync.stop()" in source
     assert source.index("try:") < source.index("await autonomous_sync.stop()")
+
+@pytest.mark.asyncio
+async def test_autonomous_retraining_trigger_after_success(monkeypatch):
+    from datetime import datetime, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    calls = []
+    async def callback(at): calls.append(at)
+    engine = AutonomousMarketData(retraining_trigger=callback)
+    when = datetime.now(timezone.utc)
+    await engine.trigger_retraining(when)
+    assert calls == [when]
+    assert engine.state.retraining_triggered is True
+    assert engine.health()["last_successful_update"] is None

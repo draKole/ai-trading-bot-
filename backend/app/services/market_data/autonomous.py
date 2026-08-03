@@ -25,11 +25,16 @@ class SyncState:
     running: bool = False
     last_weekly_audit: datetime | None = None
     last_monthly_verification: datetime | None = None
+    last_successful_update: datetime | None = None
+    retraining_triggered: bool = False
 
 class AutonomousMarketData:
     """Coordinates bounded, idempotent provider fetches without fabricating data."""
-    def __init__(self, interval: timedelta = timedelta(hours=24)) -> None:
+    def __init__(self, interval: timedelta = timedelta(hours=24), retraining_trigger=None) -> None:
         self.interval = interval
+        # Optional async callback owned by the strategy/training subsystem.
+        # No training is fabricated or invoked unless explicitly configured.
+        self.retraining_trigger = retraining_trigger
         self.state = SyncState()
         self._task: asyncio.Task | None = None
 
@@ -97,11 +102,18 @@ class AutonomousMarketData:
         return await self.sync_once(service_factory, end=end, days=7)
 
     def choose_provider(self) -> str | None:
-        for name in ("yfinance", "tradovate", "databento", "csv"):
-            provider = ProviderRegistry.get(name)
-            if provider is not None:
-                return name
-        return None
+        """Select the first explicitly registered/configured provider."""
+        configured = ("yfinance", "tradovate", "databento", "csv")
+        return next((name for name in configured if ProviderRegistry.get(name) is not None), None)
+
+    async def trigger_retraining(self, update_time: datetime) -> None:
+        """Notify the training subsystem after a successful complete sync."""
+        self.state.retraining_triggered = False
+        if self.retraining_trigger is not None:
+            result = self.retraining_trigger(update_time)
+            if hasattr(result, "__await__"):
+                await result
+            self.state.retraining_triggered = True
 
     async def sync_once(self, service_factory, *, end: datetime | None = None, days: int = 1) -> dict[str, Any]:
         if self.state.running:
@@ -131,8 +143,12 @@ class AutonomousMarketData:
                 await session.commit()
             self.state.records = total
             self.state.error = "; ".join(errors) or None
-            self.state.last_sync = datetime.now(timezone.utc)
-            self.state.next_sync = self.state.last_sync + self.interval
+            completed = datetime.now(timezone.utc)
+            self.state.last_sync = completed
+            if not errors and total > 0:
+                self.state.last_successful_update = completed
+                await self.trigger_retraining(completed)
+            self.state.next_sync = completed + self.interval
             self.state.duration_seconds = (self.state.last_sync - started).total_seconds()
             return {"status": "ok" if not errors else "partial", "records": total, "errors": errors}
         finally:
@@ -151,6 +167,8 @@ class AutonomousMarketData:
             "scheduler_started": self._task is not None and not self._task.done(),
             "last_weekly_audit": self.state.last_weekly_audit.isoformat() if self.state.last_weekly_audit else None,
             "last_monthly_verification": self.state.last_monthly_verification.isoformat() if self.state.last_monthly_verification else None,
+            "last_successful_update": self.state.last_successful_update.isoformat() if self.state.last_successful_update else None,
+            "retraining_triggered": self.state.retraining_triggered,
         }
 
     async def weekly_audit(self, service_factory) -> dict[str, Any]:
