@@ -41,7 +41,7 @@ async def lifespan(app: FastAPI):
             "LIVE mode is not allowed — set LIVE_ALLOWED=true in the environment"
         )
 
-    await autonomous_sync.start(async_session_factory)
+    await autonomous_sync.start(async_session_factory, interval_seconds=86400)
     try:
         yield
     finally:

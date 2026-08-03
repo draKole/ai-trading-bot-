@@ -149,3 +149,11 @@ def test_autonomous_cme_calendar_and_post_close_due():
     assert engine.post_close_due(after)
     engine.state.last_sync = after
     assert not engine.post_close_due(after)
+
+
+def test_lifespan_starts_and_stops_autonomous_scheduler():
+    from pathlib import Path
+    source = (Path(__file__).parents[1] / "app/main.py").read_text()
+    assert "await autonomous_sync.start(async_session_factory, interval_seconds=86400)" in source
+    assert "await autonomous_sync.stop()" in source
+    assert source.index("try:") < source.index("await autonomous_sync.stop()")
