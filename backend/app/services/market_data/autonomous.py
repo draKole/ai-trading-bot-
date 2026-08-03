@@ -10,6 +10,7 @@ from app.models.instrument import Instrument
 from typing import Any
 from app.services.market_data.provider import ProviderRegistry
 from app.services.market_data.service import MarketDataService
+from app.core.config import settings
 
 SYMBOLS = ("ES", "MES", "NQ", "MNQ")
 
@@ -100,11 +101,10 @@ class AutonomousMarketData:
         return await self.sync_once(service_factory, end=end, days=7)
 
     def choose_provider(self) -> str | None:
-        for name in ("yfinance", "tradovate", "databento", "csv"):
-            provider = ProviderRegistry.get(name)
-            if provider is not None:
-                return name
-        return None
+        """Select only the configured provider; never silently substitute another source."""
+        configured = settings.DATA_PROVIDER
+        provider = ProviderRegistry.get(configured)
+        return configured if provider is not None else None
 
     async def sync_once(self, service_factory, *, end: datetime | None = None, days: int = 1) -> dict[str, Any]:
         if self.state.running:

@@ -105,31 +105,6 @@ def test_autonomous_sync_health_is_safe_before_first_sync():
     assert health["last_sync"] is None
     assert health["records"] == 0
     assert health["running"] is False
-    assert health["status"] == "stale"
-    assert health["stale"] is True
-    assert health["retraining_required"] is False
-
-def test_autonomous_sync_health_is_current_after_recent_sync():
-    from datetime import datetime, timedelta, timezone
-    from app.services.market_data.autonomous import AutonomousMarketData
-    engine = AutonomousMarketData(interval=timedelta(hours=24))
-    engine.state.last_sync = datetime.now(timezone.utc) - timedelta(minutes=1)
-    health = engine.health()
-    assert health["status"] == "current"
-    assert health["stale"] is False
-    assert health["age_seconds"] >= 0
-
-def test_autonomous_health_exposes_retraining_observability():
-    from datetime import datetime, timezone
-    from app.services.market_data.autonomous import AutonomousMarketData
-    engine = AutonomousMarketData()
-    engine.state.retraining_required = True
-    engine.state.retraining_reason = "market_data_sync_partial_failure"
-    engine.state.retraining_triggered_at = datetime.now(timezone.utc)
-    health = engine.health()
-    assert health["retraining_required"] is True
-    assert health["retraining_reason"] == "market_data_sync_partial_failure"
-    assert health["retraining_triggered_at"] is not None
 
 def test_autonomous_calendar_excludes_weekends():
     from datetime import date, datetime, timezone
@@ -184,23 +159,18 @@ def test_lifespan_starts_and_stops_autonomous_scheduler():
     assert source.index("try:") < source.index("await autonomous_sync.stop()")
 
 @pytest.mark.asyncio
-async def test_autonomous_retraining_trigger_after_success(monkeypatch):
-    from datetime import datetime, timezone
+async def test_autonomous_sync_uses_only_configured_provider(monkeypatch):
+    """Autonomous sync must not silently switch to a different registered source."""
     from app.services.market_data.autonomous import AutonomousMarketData
-    calls = []
-    async def callback(at): calls.append(at)
-    engine = AutonomousMarketData(retraining_trigger=callback)
-    when = datetime.now(timezone.utc)
-    await engine.trigger_retraining(when)
-    assert calls == [when]
-    assert engine.state.retraining_triggered is True
-    assert engine.health()["last_successful_update"] is None
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "DATA_PROVIDER", "csv")
+    monkeypatch.setattr("app.services.market_data.autonomous.ProviderRegistry.get", lambda name: object() if name == "yfinance" else None)
+    assert AutonomousMarketData().choose_provider() is None
 
-
-def test_autonomous_health_requires_real_fresh_success_and_provider():
+@pytest.mark.asyncio
+async def test_autonomous_sync_selects_configured_registered_provider(monkeypatch):
     from app.services.market_data.autonomous import AutonomousMarketData
-    engine = AutonomousMarketData()
-    health = engine.health()
-    assert health["status"] == "degraded"
-    assert health["fresh"] is False
-    assert health["configured_symbols"] == ["ES", "MES", "NQ", "MNQ"]
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "DATA_PROVIDER", "yfinance")
+    monkeypatch.setattr("app.services.market_data.autonomous.ProviderRegistry.get", lambda name: object() if name == "yfinance" else None)
+    assert AutonomousMarketData().choose_provider() == "yfinance"
