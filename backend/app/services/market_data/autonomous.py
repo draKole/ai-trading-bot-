@@ -148,6 +148,9 @@ class AutonomousMarketData:
             "duration_seconds": self.state.duration_seconds,
             "error": self.state.error,
             "running": self.state.running,
+            "scheduler_started": self._task is not None and not self._task.done(),
+            "last_weekly_audit": self.state.last_weekly_audit.isoformat() if self.state.last_weekly_audit else None,
+            "last_monthly_verification": self.state.last_monthly_verification.isoformat() if self.state.last_monthly_verification else None,
         }
 
     async def weekly_audit(self, service_factory) -> dict[str, Any]:
