@@ -183,3 +183,24 @@ def test_autonomous_health_starts_stale_and_degraded_without_provider():
     assert health["stale"] is True
     assert health["fresh"] is False
     assert health["configured_symbols"] == ["ES", "MES", "NQ", "MNQ"]
+
+
+@pytest.mark.asyncio
+async def test_find_missing_days_detects_partial_symbol_coverage():
+    from datetime import datetime, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    class Result:
+        def all(self): return [("ES", "2026-08-03"), ("MES", "2026-08-03"), ("NQ", "2026-08-03")]
+    class Session:
+        async def execute(self, query): return Result()
+    assert await AutonomousMarketData().find_missing_days(Session(), datetime(2026,8,3,tzinfo=timezone.utc), datetime(2026,8,3,23,tzinfo=timezone.utc)) == ["2026-08-03"]
+
+@pytest.mark.asyncio
+async def test_find_missing_days_accepts_complete_symbol_coverage():
+    from datetime import datetime, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    class Result:
+        def all(self): return [(symbol, "2026-08-03") for symbol in ("ES", "MES", "NQ", "MNQ")]
+    class Session:
+        async def execute(self, query): return Result()
+    assert await AutonomousMarketData().find_missing_days(Session(), datetime(2026,8,3,tzinfo=timezone.utc), datetime(2026,8,3,23,tzinfo=timezone.utc)) == []
