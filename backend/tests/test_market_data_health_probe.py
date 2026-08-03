@@ -105,6 +105,31 @@ def test_autonomous_sync_health_is_safe_before_first_sync():
     assert health["last_sync"] is None
     assert health["records"] == 0
     assert health["running"] is False
+    assert health["status"] == "stale"
+    assert health["stale"] is True
+    assert health["retraining_required"] is False
+
+def test_autonomous_sync_health_is_current_after_recent_sync():
+    from datetime import datetime, timedelta, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    engine = AutonomousMarketData(interval=timedelta(hours=24))
+    engine.state.last_sync = datetime.now(timezone.utc) - timedelta(minutes=1)
+    health = engine.health()
+    assert health["status"] == "current"
+    assert health["stale"] is False
+    assert health["age_seconds"] >= 0
+
+def test_autonomous_health_exposes_retraining_observability():
+    from datetime import datetime, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    engine = AutonomousMarketData()
+    engine.state.retraining_required = True
+    engine.state.retraining_reason = "market_data_sync_partial_failure"
+    engine.state.retraining_triggered_at = datetime.now(timezone.utc)
+    health = engine.health()
+    assert health["retraining_required"] is True
+    assert health["retraining_reason"] == "market_data_sync_partial_failure"
+    assert health["retraining_triggered_at"] is not None
 
 def test_autonomous_calendar_excludes_weekends():
     from datetime import date, datetime, timezone

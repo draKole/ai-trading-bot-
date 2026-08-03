@@ -25,6 +25,9 @@ class SyncState:
     running: bool = False
     last_weekly_audit: datetime | None = None
     last_monthly_verification: datetime | None = None
+    retraining_required: bool = False
+    retraining_reason: str | None = None
+    retraining_triggered_at: datetime | None = None
 
 class AutonomousMarketData:
     """Coordinates bounded, idempotent provider fetches without fabricating data."""
@@ -132,6 +135,10 @@ class AutonomousMarketData:
             self.state.records = total
             self.state.error = "; ".join(errors) or None
             self.state.last_sync = datetime.now(timezone.utc)
+            if errors:
+                self.state.retraining_required = True
+                self.state.retraining_reason = "market_data_sync_partial_failure"
+                self.state.retraining_triggered_at = self.state.last_sync
             self.state.next_sync = self.state.last_sync + self.interval
             self.state.duration_seconds = (self.state.last_sync - started).total_seconds()
             return {"status": "ok" if not errors else "partial", "records": total, "errors": errors}
@@ -139,8 +146,14 @@ class AutonomousMarketData:
             self.state.running = False
 
     def health(self) -> dict[str, Any]:
+        now = datetime.now(timezone.utc)
+        age_seconds = (now - self.state.last_sync).total_seconds() if self.state.last_sync else None
+        stale = age_seconds is None or age_seconds > self.interval.total_seconds()
         return {
             "provider": self.state.provider,
+            "status": "stale" if stale else "current",
+            "stale": stale,
+            "age_seconds": age_seconds,
             "last_sync": self.state.last_sync.isoformat() if self.state.last_sync else None,
             "next_sync": self.state.next_sync.isoformat() if self.state.next_sync else None,
             "records": self.state.records,
@@ -151,6 +164,9 @@ class AutonomousMarketData:
             "scheduler_started": self._task is not None and not self._task.done(),
             "last_weekly_audit": self.state.last_weekly_audit.isoformat() if self.state.last_weekly_audit else None,
             "last_monthly_verification": self.state.last_monthly_verification.isoformat() if self.state.last_monthly_verification else None,
+            "retraining_required": self.state.retraining_required,
+            "retraining_reason": self.state.retraining_reason,
+            "retraining_triggered_at": self.state.retraining_triggered_at.isoformat() if self.state.retraining_triggered_at else None,
         }
 
     async def weekly_audit(self, service_factory) -> dict[str, Any]:
