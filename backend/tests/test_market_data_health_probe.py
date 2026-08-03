@@ -157,3 +157,20 @@ def test_lifespan_starts_and_stops_autonomous_scheduler():
     assert "await autonomous_sync.start(async_session_factory, interval_seconds=86400)" in source
     assert "await autonomous_sync.stop()" in source
     assert source.index("try:") < source.index("await autonomous_sync.stop()")
+
+@pytest.mark.asyncio
+async def test_autonomous_sync_uses_only_configured_provider(monkeypatch):
+    """Autonomous sync must not silently switch to a different registered source."""
+    from app.services.market_data.autonomous import AutonomousMarketData
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "DATA_PROVIDER", "csv")
+    monkeypatch.setattr("app.services.market_data.autonomous.ProviderRegistry.get", lambda name: object() if name == "yfinance" else None)
+    assert AutonomousMarketData().choose_provider() is None
+
+@pytest.mark.asyncio
+async def test_autonomous_sync_selects_configured_registered_provider(monkeypatch):
+    from app.services.market_data.autonomous import AutonomousMarketData
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "DATA_PROVIDER", "yfinance")
+    monkeypatch.setattr("app.services.market_data.autonomous.ProviderRegistry.get", lambda name: object() if name == "yfinance" else None)
+    assert AutonomousMarketData().choose_provider() == "yfinance"
