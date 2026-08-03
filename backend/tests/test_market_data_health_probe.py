@@ -174,3 +174,12 @@ async def test_autonomous_sync_selects_configured_registered_provider(monkeypatc
     monkeypatch.setattr(settings, "DATA_PROVIDER", "yfinance")
     monkeypatch.setattr("app.services.market_data.autonomous.ProviderRegistry.get", lambda name: object() if name == "yfinance" else None)
     assert AutonomousMarketData().choose_provider() == "yfinance"
+
+
+def test_autonomous_health_starts_stale_and_degraded_without_provider():
+    from app.services.market_data.autonomous import AutonomousMarketData
+    health = AutonomousMarketData().health()
+    assert health["status"] == "degraded"
+    assert health["stale"] is True
+    assert health["fresh"] is False
+    assert health["configured_symbols"] == ["ES", "MES", "NQ", "MNQ"]

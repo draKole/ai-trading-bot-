@@ -149,10 +149,14 @@ class AutonomousMarketData:
         now = datetime.now(timezone.utc)
         age_seconds = (now - self.state.last_sync).total_seconds() if self.state.last_sync else None
         stale = age_seconds is None or age_seconds > self.interval.total_seconds()
+        green = bool(self.state.provider and not self.state.error and not stale and not self.state.missing_days)
         return {
             "provider": self.state.provider,
             "status": "stale" if stale else "current",
             "stale": stale,
+            "fresh": not stale,
+            "status": "green" if green else "degraded",
+            "configured_symbols": list(SYMBOLS),
             "age_seconds": age_seconds,
             "last_sync": self.state.last_sync.isoformat() if self.state.last_sync else None,
             "next_sync": self.state.next_sync.isoformat() if self.state.next_sync else None,
