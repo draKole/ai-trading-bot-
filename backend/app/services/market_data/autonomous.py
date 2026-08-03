@@ -2,7 +2,8 @@
 from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 from sqlalchemy import func, select
 from app.models.bar import Bar
 from app.models.instrument import Instrument
@@ -22,6 +23,8 @@ class SyncState:
     duration_seconds: float | None = None
     error: str | None = None
     running: bool = False
+    last_weekly_audit: datetime | None = None
+    last_monthly_verification: datetime | None = None
 
 class AutonomousMarketData:
     """Coordinates bounded, idempotent provider fetches without fabricating data."""
@@ -43,27 +46,32 @@ class AutonomousMarketData:
 
     @staticmethod
     def market_holidays(year: int, end_year: int | None = None) -> set[date]:
-        """Return conservative observed US exchange holidays (no fabricated bars)."""
-        end_year = end_year or year
+        """Return the documented CME equity-index futures full-closure calendar.
+
+        CME publishes holiday schedules annually; this dependency-free abstraction
+        encodes the recurring full-closure dates (including observed fixed dates).
+        Early-close sessions are retained because bars remain valid on those days.
+        """
+        end_year = year if end_year is None else end_year
         holidays: set[date] = set()
         for y in range(year, end_year + 1):
-            fixed = ((1, 1), (7, 4), (12, 25))
-            for month, day in fixed:
-                d = date(y, month, day)
-                holidays.add(d + timedelta(days=1) if d.weekday() == 5 else d - timedelta(days=1) if d.weekday() == 6 else d)
-            # Federal exchange closures: MLK, Presidents, Memorial, Juneteenth, Labor, Thanksgiving.
-            jan1 = date(y, 1, 1)
-            mlk = date(y, 1, 1) + timedelta(days=(7 - date(y, 1, 1).weekday()) % 7 + 14); holidays.add(mlk)
-            feb1 = date(y, 2, 1); holidays.add(feb1 + timedelta(days=(0 - feb1.weekday()) % 7 + 14))
-            may31 = date(y, 5, 31); holidays.add(may31 - timedelta(days=(may31.weekday() + 1) % 7))
-            jun19 = date(y, 6, 19); holidays.add(jun19 + timedelta(days=1) if jun19.weekday()==5 else jun19 - timedelta(days=1) if jun19.weekday()==6 else jun19)
-            sep1 = date(y, 9, 1); holidays.add(sep1 + timedelta(days=(0 - sep1.weekday()) % 7))
-            nov1 = date(y, 11, 1); holidays.add(nov1 + timedelta(days=(3 - nov1.weekday()) % 7 + 21))
-            # Good Friday, derived from computus.
-            a=y%19; b=y//100; c=y%100; d=b//4; e=b%4; f=(b+8)//25; g=(b-f+1)//3; h=(19*a+b-d-g+15)%30; i=c//4; k=c%4; l=(32+2*e+2*i-h-k)%7; m=(a+11*h+22*l)//451; month=(h+l-7*m+114)//31; day=(h+l-7*m+114)%31+1
-            easter=date(y,month,day); holidays.add(easter-timedelta(days=2))
+            def observed(d: date) -> date:
+                return d + timedelta(days=1) if d.weekday() == 5 else d - timedelta(days=1) if d.weekday() == 6 else d
+            holidays.update(observed(date(y, m, d)) for m, d in ((1, 1), (6, 19), (7, 4), (12, 25)))
+            # nth weekday: weekday Monday=0; CME recurring federal closures.
+            def nth(month: int, weekday: int, n: int) -> date:
+                first = date(y, month, 1)
+                return first + timedelta(days=(weekday - first.weekday()) % 7 + 7 * (n - 1))
+            holidays.update((nth(1, 0, 3), nth(2, 0, 3), nth(5, 0, 5), nth(9, 0, 1), nth(11, 3, 4)))
+            # CME equity-index futures close Good Friday (Gregorian computus).
+            a, b, c = y % 19, y // 100, y % 100
+            d, e, f = b // 4, b % 4, (b + 8) // 25
+            g = (b - f + 1) // 3; h = (19*a + b - d - g + 15) % 30
+            i, k, l = c // 4, c % 4, (32 + 2*e + 2*i - h - k) % 7
+            m = (a + 11*h + 22*l) // 451
+            easter = date(y, (h + l - 7*m + 114) // 31, (h + l - 7*m + 114) % 31 + 1)
+            holidays.add(easter - timedelta(days=2))
         return holidays
-
     async def find_missing_days(self, session, start: datetime, end: datetime) -> list[str]:
         """Find weekday/holiday-aware dates with no stored bars for required symbols."""
         expected = set(self.trading_days(start, end))
@@ -75,9 +83,14 @@ class AutonomousMarketData:
 
     @staticmethod
     def is_post_close(now: datetime) -> bool:
-        """Return true after 16:15 America/New_York equivalent (UTC-safe approximation)."""
-        # Futures sync is intentionally gated to the 16:15-23:59 UTC operational window.
-        return now.hour >= 16
+        """Return true at/after CME's 16:15 America/New_York post-close gate."""
+        local = now.astimezone(ZoneInfo("America/New_York")) if now.tzinfo else now.replace(tzinfo=timezone.utc).astimezone(ZoneInfo("America/New_York"))
+        return local.time() >= time(16, 15)
+
+    def post_close_due(self, now: datetime) -> bool:
+        """Allow one regular sync per local trading date after post-close."""
+        local = now.astimezone(ZoneInfo("America/New_York"))
+        return self.is_post_close(now) and (self.state.last_sync is None or self.state.last_sync.astimezone(ZoneInfo("America/New_York")).date() != local.date())
 
     async def backfill_missing(self, service_factory, *, end: datetime | None = None) -> dict[str, Any]:
         """Backfill the bounded missing-date window through the same idempotent pipeline."""
@@ -151,12 +164,14 @@ class AutonomousMarketData:
             monthly_at = weekly_at
             while True:
                 now = datetime.now(timezone.utc)
-                if self.is_post_close(now):
+                if self.post_close_due(now):
                     await self.sync_once(service_factory)
-                    if now - weekly_at >= timedelta(days=7):
-                        await self.weekly_audit(service_factory); weekly_at = now
-                    if now - monthly_at >= timedelta(days=30):
-                        await self.monthly_verification(service_factory); monthly_at = now
+                if now - weekly_at >= timedelta(days=7):
+                    await self.weekly_audit(service_factory); weekly_at = now
+                    self.state.last_weekly_audit = now
+                if now - monthly_at >= timedelta(days=30):
+                    await self.monthly_verification(service_factory); monthly_at = now
+                    self.state.last_monthly_verification = now
                 await asyncio.sleep(interval_seconds)
         self._task = asyncio.create_task(loop())
 
