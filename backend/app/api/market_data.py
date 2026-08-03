@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 
 from app.core.database import get_db
+from app.services.market_data.autonomous import AutonomousMarketData
 from app.services.market_data import (
     MarketDataService,
     VALID_TIMEFRAMES,
@@ -18,6 +19,7 @@ from app.services.market_data import (
 
 logger = structlog.get_logger()
 router = APIRouter()
+autonomous_sync = AutonomousMarketData()
 
 
 def get_market_data_service(
@@ -56,6 +58,11 @@ def _serialize_bar(b) -> dict:
 
 
 # ─── Instruments ─────────────────────────────────────────────
+
+@router.get("/autonomous/health")
+async def autonomous_health():
+    """Expose synchronization state for operational monitoring."""
+    return autonomous_sync.health()
 
 @router.get("/instruments")
 async def list_instruments(
