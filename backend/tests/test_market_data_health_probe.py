@@ -105,3 +105,9 @@ def test_autonomous_sync_health_is_safe_before_first_sync():
     assert health["last_sync"] is None
     assert health["records"] == 0
     assert health["running"] is False
+
+def test_autonomous_calendar_excludes_weekends():
+    from datetime import datetime, timezone
+    from app.services.market_data.autonomous import AutonomousMarketData
+    days = AutonomousMarketData().trading_days(datetime(2026, 8, 1, tzinfo=timezone.utc), datetime(2026, 8, 3, tzinfo=timezone.utc))
+    assert days == ["2026-08-03"]

@@ -27,6 +27,17 @@ class AutonomousMarketData:
         self.state = SyncState()
         self._task: asyncio.Task | None = None
 
+    def trading_days(self, start: datetime, end: datetime) -> list[str]:
+        """Return weekday dates only; exchange holidays remain explicit gaps."""
+        day = start.date()
+        last = end.date()
+        result = []
+        while day <= last:
+            if day.weekday() < 5:
+                result.append(day.isoformat())
+            day += timedelta(days=1)
+        return result
+
     def choose_provider(self) -> str | None:
         for name in ("yfinance", "tradovate", "databento", "csv"):
             provider = ProviderRegistry.get(name)
@@ -34,7 +45,7 @@ class AutonomousMarketData:
                 return name
         return None
 
-    async def sync_once(self, service_factory, *, end: datetime | None = None) -> dict[str, Any]:
+    async def sync_once(self, service_factory, *, end: datetime | None = None, days: int = 1) -> dict[str, Any]:
         if self.state.running:
             return {"status": "already_running"}
         provider_name = self.choose_provider()
@@ -47,7 +58,8 @@ class AutonomousMarketData:
         total = 0
         errors: list[str] = []
         end = end or datetime.now(timezone.utc)
-        start = end - timedelta(days=1)
+        start = end - timedelta(days=max(1, days))
+        self.state.missing_days = self.trading_days(start, end)
         try:
             async with service_factory() as session:
                 service = MarketDataService(session)
@@ -78,6 +90,14 @@ class AutonomousMarketData:
             "error": self.state.error,
             "running": self.state.running,
         }
+
+    async def weekly_audit(self, service_factory) -> dict[str, Any]:
+        """Run a bounded seven-day integrity refresh; persistence is idempotent."""
+        return await self.sync_once(service_factory, days=7)
+
+    async def monthly_verification(self, service_factory) -> dict[str, Any]:
+        """Run a bounded 31-day verification for all supported symbols."""
+        return await self.sync_once(service_factory, days=31)
 
     async def start(self, service_factory, interval_seconds: float = 86400) -> None:
         async def loop() -> None:
